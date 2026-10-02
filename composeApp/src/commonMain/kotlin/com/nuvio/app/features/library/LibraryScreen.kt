@@ -90,6 +90,9 @@ import com.nuvio.app.features.tracking.TrackingRefreshIntent
 import com.nuvio.app.features.watched.WatchedRepository
 import com.nuvio.app.features.watching.application.WatchingState
 import kotlinx.coroutines.flow.Flow
+import com.nuvio.app.core.build.AppFeaturePolicy
+import com.nuvio.app.features.downloads.DownloadItem
+import com.nuvio.app.features.downloads.rememberDownloadsLibraryContent
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.launch
 import nuvio.composeapp.generated.resources.*
@@ -104,6 +107,7 @@ fun LibraryScreen(
     onPosterLongClick: ((LibraryItem, LibrarySection) -> Unit)? = null,
     onSectionViewAllClick: ((LibrarySection, LibrarySortOption) -> Unit)? = null,
     onCloudFilePlay: ((CloudLibraryItem, CloudLibraryFile) -> Unit)? = null,
+    onOpenDownload: ((DownloadItem) -> Unit)? = null,
     onConnectCloudClick: (() -> Unit)? = null,
     disintegrationRequest: DisintegrationRequest<String>? = null,
 ) {
@@ -131,6 +135,9 @@ fun LibraryScreen(
     val sourceMode = remember(sourceModeName) {
         runCatching { LibraryViewMode.valueOf(sourceModeName) }.getOrDefault(LibraryViewMode.Saved)
     }
+    val downloadContent = if (AppFeaturePolicy.downloadsEnabled && sourceMode == LibraryViewMode.Downloads) {
+        rememberDownloadsLibraryContent { onOpenDownload?.invoke(it) }
+    } else null
     var selectedProviderId by rememberSaveable { mutableStateOf<String?>(null) }
     var selectedTypeName by rememberSaveable { mutableStateOf<String?>(null) }
     var cloudSearchQuery by rememberSaveable { mutableStateOf("") }
@@ -248,7 +255,7 @@ fun LibraryScreen(
 
     val disintegration = remember { LibraryDisintegrationHolder() }
     val librarySectionsDisplay = if (
-        sourceMode != LibraryViewMode.Cloud &&
+        sourceMode == LibraryViewMode.Saved &&
         displaySettings.layoutMode == LibraryLayoutMode.HORIZONTAL &&
         uiState.isLoaded &&
         sortedSections.isNotEmpty()
@@ -292,7 +299,7 @@ fun LibraryScreen(
                         modifier = Modifier.fillMaxWidth(),
                     ) {
                         NuvioScreenHeader(
-                            title = if (sourceMode == LibraryViewMode.Cloud) {
+                            title = if (sourceMode != LibraryViewMode.Saved) {
                                 stringResource(Res.string.library_title)
                             } else {
                                 when (uiState.sourceMode) {
@@ -352,7 +359,9 @@ fun LibraryScreen(
                 }
             }
 
-            if (sourceMode == LibraryViewMode.Cloud) {
+            if (sourceMode == LibraryViewMode.Downloads) {
+                downloadContent?.invoke(this)
+            } else if (sourceMode == LibraryViewMode.Cloud) {
                 cloudLibraryContent(
                     uiState = cloudUiState,
                     selectedProviderId = selectedProviderId,
@@ -709,6 +718,13 @@ private fun LibrarySourceSwitch(
             selected = selectedMode == LibraryViewMode.Cloud,
             onClick = { onModeSelected(LibraryViewMode.Cloud) },
         )
+        if (AppFeaturePolicy.downloadsEnabled) {
+            LibraryChip(
+                label = stringResource(Res.string.compose_settings_root_downloads_title),
+                selected = selectedMode == LibraryViewMode.Downloads,
+                onClick = { onModeSelected(LibraryViewMode.Downloads) },
+            )
+        }
     }
 }
 
@@ -1181,6 +1197,7 @@ private fun CloudLibrarySkeletonRow(
 private enum class LibraryViewMode {
     Saved,
     Cloud,
+    Downloads,
 }
 
 private fun LazyListScope.librarySections(

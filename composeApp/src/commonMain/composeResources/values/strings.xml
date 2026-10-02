@@ -2431,4 +2431,7 @@
     <string name="compose_player_show_remaining_time">Show remaining time</string>
     <string name="compose_player_brightness">Brightness</string>
     <string name="compose_player_volume">Volume</string>
+    <string name="streams_torrent_sources">Torrent sources</string>
+    <string name="streams_direct_sources">Direct sources</string>
+    <string name="streams_download_in_library">Already in Downloads — manage it from Library</string>
 </resources>

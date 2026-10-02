@@ -51,7 +51,7 @@ internal fun StreamItem.displaySizeBytes(): Long =
 
 internal fun StreamItem.displayResolution(): Int {
     verifiedMedia?.let { return it.width } // Width handles cinematic aspect ratios without mislabelling 4K.
-    val text = listOfNotNull(clientResolve?.stream?.raw?.parsed?.resolution, behaviorHints.filename, name, description).joinToString(" ")
+    val text = listOfNotNull(clientResolve?.stream?.raw?.parsed?.resolution, behaviorHints.filename, name, title, description).joinToString(" ")
     return when {
         Regex("(?i)\\b(4320p?|8k)\\b").containsMatchIn(text) -> 7680
         Regex("(?i)\\b(2160p?|4k|uhd)\\b").containsMatchIn(text) -> 3840
@@ -65,7 +65,7 @@ internal fun StreamItem.displayResolution(): Int {
 }
 
 internal fun StreamItem.displayQualityRank(): Int {
-    val text = listOfNotNull(behaviorHints.filename, name, description, clientResolve?.stream?.raw?.parsed?.quality).joinToString(" ").lowercase()
+    val text = listOfNotNull(behaviorHints.filename, name, title, description, clientResolve?.stream?.raw?.parsed?.quality).joinToString(" ").lowercase()
     return when {
         "remux" in text -> 6
         Regex("blu[ ._-]?ray|bdrip|brrip").containsMatchIn(text) -> 5

@@ -49,6 +49,9 @@ object StreamParser {
                 addonId = addonId,
                 addonLogo = addonLogo,
                 streamType = normalizeStreamType(obj.string("type")),
+                seeders = (obj.int("seeders") ?: obj.int("seeds")
+                    ?: obj.objectValue("clientResolve")?.objectValue("stream")?.objectValue("raw")?.int("seeders"))
+                    ?.takeIf { it >= 0 },
                 clientResolve = clientResolve,
                 behaviorHints = StreamBehaviorHints(
                     bingeGroup = hintsObj?.string("bingeGroup"),
