@@ -132,7 +132,13 @@ namespace NuvioVpn {
             ulong id; Check(FwpmFilterAdd0(engine, filter, IntPtr.Zero, out id));
         }
         static void WriteGuid(IntPtr p, int offset, Guid value) { Marshal.Copy(value.ToByteArray(), 0, IntPtr.Add(p, offset), 16); }
-        static void Check(uint code) { if (code != 0) throw new VpnError("FIREWALL_FAILED"); }
+        static void Check(uint code) {
+            if (code == 0) return;
+            // CI diagnostics contain only a numeric Windows result, never profile data.
+            if (Environment.GetEnvironmentVariable("GITHUB_ACTIONS") == "true")
+                Console.Error.WriteLine("WFP_RESULT " + code.ToString("X8"));
+            throw new VpnError("FIREWALL_FAILED");
+        }
         public void Dispose() { if (engine != IntPtr.Zero) { FwpmEngineClose0(engine); engine = IntPtr.Zero; } }
         [DllImport("fwpuclnt.dll", CharSet = CharSet.Unicode)] static extern uint FwpmEngineOpen0(string server, uint auth, IntPtr identity, IntPtr session, out IntPtr engine);
         [DllImport("fwpuclnt.dll")] static extern uint FwpmEngineClose0(IntPtr engine);
