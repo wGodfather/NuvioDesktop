@@ -30,6 +30,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.TooltipBox
 import androidx.compose.material3.PlainTooltip
 import androidx.compose.material3.TooltipDefaults
@@ -243,6 +244,10 @@ internal fun StreamCard(
                         onClick = { action.onDownload(stream) },
                         enabled = supported && !action.preparing && action.existingStatus == null,
                         modifier = Modifier.size(48.dp),
+                        colors = IconButtonDefaults.iconButtonColors(
+                            contentColor = MaterialTheme.colorScheme.onSurface,
+                            disabledContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
+                        ),
                     ) {
                         if (action.preparing || action.existingStatus == DownloadStatus.Downloading) {
                             NuvioLoadingIndicator(modifier = Modifier.size(20.dp))

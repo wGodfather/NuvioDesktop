@@ -61,12 +61,21 @@ Android ve Windows aynı sürüm numarasını kullanır. APK dosyaları arm64-v8
 armeabi-v7a, x86 ve x86_64 için üretilir. Android 7+ hedeflenir; fiziksel ARM telefon
 ve iOS paketi bu çalışmada test edilmedi.
 
+0.1.29-alpha ile Windows ve Android Kitaplığında Kaydedildi/Bulut yanında
+İndirilenler sekmesi ve kaynak kartlarının sağında indirme butonu bulunur.
+Torrentler en az 5 bildirilen seed, 1080p sınıfı çözünürlük ve seçilen dosyada
+1 GiB şartıyla listelenir; bilinmeyen değerler elenir. Diğer kaynaklarda yalnızca
+çözünürlük sınırı uygulanır. Hazır doğrudan kaynaklar torrentleri beklemez.
+Android çözünürlük/boyut bilgisini eklentiden alır; gerçek medya doğrulaması
+Windows'ta kalır. İki platform aynı sıralama ve buton davranışı testlerini kullanır.
+
 Android torrent indirmesi ayrı Nuvio Engine oturumu kullanır. Doğru dosya seçimi,
 HTTP range ile devam etme ve iptal sırasında oturumun kapanması test edilir.
 Yerel motor adresi Wi-Fi/mobil ağ soketine zorla bağlanmaz ve eklenti kimlik
 başlıkları yerel motora gönderilmez. Oynatıcı ile indirme birbirini durdurmaz.
 Android CI işi Android 16 sanal cihazında Suits aramasını, tür filtresini,
-sayfalamayı ve kendi küçük test videosunun gerçek torrent indirmesini kontrol eder.
+sayfalamayı, kendi küçük test videosunun gerçek torrent indirmesini ve Kitaplıktaki
+İndirilenler sekmesini kontrol eder. Kitaplık ekran görüntüsü QA çıktısına eklenir.
 Opt-in cihaz testleri `androidApp/src/androidTest/.../ForkAndroidIntegrationTest.kt`;
 yerel test paylaşımı `tools/qa_torrent_seed.py` dosyasındadır.
 
