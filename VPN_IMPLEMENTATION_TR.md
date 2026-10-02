@@ -86,6 +86,18 @@ servis yeniden başlatma ve koruma kaldırıldıktan sonra internetin geri gelme
 Başarılı çalışma: https://github.com/wGodfather/NuvioDesktop/actions/runs/37012387081
 Bu testler tam DNS/IPv6/torrent sızıntı testi veya hız testi yerine geçmez.
 
+Windows test paketi de başarıyla üretildi:
+https://github.com/wGodfather/NuvioDesktop/actions/runs/37039846218
+Paketin uygulama kaynak commit'i `464defa970b4d01cd3a3facc3513b974276e3e19`.
+MSI SHA-256, içindeki üç VPN çalıştırılabilirinin SHA-256 manifesti, lisans/kaynak
+dosyalarının bulunması ve paket içinden çıkarılan yardımcının 23 testi doğrulandı.
+Paket kurularak çalıştırılmadı; test dosyasıdır ve sürüm yayını değildir.
+Bu test paketinde taban sürüm numarası 0.1.28-alpha korunur.
+
+Taslak PR'daki upstream'den kalan şablon kontrolü, bağlantılı bir talep/issue
+olmadığı için başarısızdır. Fork sahibinin uygulama isteği bu sohbetten gelir;
+GitHub üzerinde verilmiş bir issue onayı varmış gibi gösterilmez.
+
 Yayımdan önce tamamlanacaklar:
 
 - P2P'yi destekleyen gerçek sağlayıcıyla çıkış IP'si, torrent yükleme/indirme,
