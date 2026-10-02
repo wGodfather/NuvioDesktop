@@ -17,6 +17,7 @@ bytes=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["bytes"]
   "-Pandroid.testInstrumentationRunnerArguments.magnet=$magnet" \
   "-Pandroid.testInstrumentationRunnerArguments.sha256=$sha256" \
   "-Pandroid.testInstrumentationRunnerArguments.bytes=$bytes" \
+  -Pandroid.injected.androidTest.leaveApksInstalledAfterRun=true \
   -Pkotlin.compiler.execution.strategy=in-process --max-workers=1 --no-daemon --no-configuration-cache
 grep -q 'metadata served' android-seed.log
 grep -q 'piece served:' android-seed.log
