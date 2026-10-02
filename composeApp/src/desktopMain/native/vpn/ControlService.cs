@@ -85,19 +85,9 @@ namespace NuvioVpn {
             // claim "Connected". Authenticate the protected SYSTEM broker before sending keys.
             uint pid;
             if (!GetNamedPipeServerProcessId(pipe.SafePipeHandle, out pid)) throw new VpnError("UNTRUSTED_SERVICE");
-            IntPtr process = OpenProcess(0x1000, false, pid);
-            if (process == IntPtr.Zero) throw new VpnError("UNTRUSTED_SERVICE");
-            try {
-                var image = new StringBuilder(32768); int length = image.Capacity;
-                if (!QueryFullProcessImageName(process, 0, image, ref length) ||
-                    !string.Equals(image.ToString(), Path.Combine(Root, "NuvioVpn.exe"), StringComparison.OrdinalIgnoreCase) ||
-                    !NativeScm.IsBrokerProcess(pid)) throw new VpnError("UNTRUSTED_SERVICE");
-            } finally { CloseHandle(process); }
+            if (!NativeScm.IsBrokerProcess(pid)) throw new VpnError("UNTRUSTED_SERVICE");
         }
         [DllImport("kernel32.dll", SetLastError = true)] static extern bool GetNamedPipeServerProcessId(Microsoft.Win32.SafeHandles.SafePipeHandle pipe, out uint pid);
-        [DllImport("kernel32.dll", SetLastError = true)] static extern IntPtr OpenProcess(uint access, bool inherit, uint pid);
-        [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)] static extern bool QueryFullProcessImageName(IntPtr process, uint flags, StringBuilder path, ref int length);
-        [DllImport("kernel32.dll")] static extern bool CloseHandle(IntPtr handle);
         static void Install(SecurityIdentifier owner) {
             if (IntPtr.Size != 8) throw new VpnError("UNSUPPORTED_ARCHITECTURE");
             string source = Path.GetDirectoryName(Self());
@@ -396,7 +386,9 @@ namespace NuvioVpn {
                     IntPtr config = arena.Alloc((int)needed);
                     if (!QueryServiceConfig(service, config, needed, out needed)) return false;
                     string account = Marshal.PtrToStringUni(Marshal.ReadIntPtr(config, 48));
-                    return string.Equals(account, "LocalSystem", StringComparison.OrdinalIgnoreCase);
+                    string binary = Marshal.PtrToStringUni(Marshal.ReadIntPtr(config, 16));
+                    return string.Equals(account, "LocalSystem", StringComparison.OrdinalIgnoreCase) &&
+                        string.Equals(binary, Program.Quote(Path.Combine(Program.Root, "NuvioVpn.exe")) + " service", StringComparison.OrdinalIgnoreCase);
                 }
             } finally {
                 if (service != IntPtr.Zero) CloseServiceHandle(service);
