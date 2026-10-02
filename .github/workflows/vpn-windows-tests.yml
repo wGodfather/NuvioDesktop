@@ -1,0 +1,45 @@
+name: Nuvio VPN Windows isolation tests
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'composeApp/src/**/features/vpn/**'
+      - 'composeApp/src/desktopMain/native/vpn/**'
+      - '.github/scripts/build-vpn-runtime.ps1'
+      - '.github/scripts/test-vpn-demo.ps1'
+      - '.github/workflows/vpn-windows-tests.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  native-isolation:
+    runs-on: windows-2022
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+      - name: Compile helper, validate profiles and encrypted storage
+        shell: pwsh
+        run: ./.github/scripts/build-vpn-runtime.ps1
+      - name: Check persistent firewall and recovery on this disposable runner
+        shell: pwsh
+        run: |
+          try {
+            & ./composeApp/build/native/vpn/NuvioVpn.exe firewall-smoke-test
+            if ($LASTEXITCODE -ne 0) { throw 'Isolated WFP checks failed.' }
+          } finally {
+            & ./composeApp/build/native/vpn/NuvioVpn.exe recover
+          }
+      - name: Check broker, encrypted profile and real demo peer handshake
+        shell: pwsh
+        run: ./.github/scripts/test-vpn-demo.ps1
+      - name: Restore access if any preceding check failed
+        if: always()
+        shell: pwsh
+        run: |
+          $helper = './composeApp/build/native/vpn/NuvioVpn.exe'
+          if (Test-Path -LiteralPath $helper) {
+            & $helper recover
+            if ($LASTEXITCODE -ne 0) { throw 'VPN firewall recovery failed.' }
+          }

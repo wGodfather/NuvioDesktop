@@ -3,6 +3,12 @@ package com.nuvio.app.features.p2p
 import co.touchlab.kermit.Logger
 import com.nuvio.app.core.i18n.localizedP2pUnknownTorrentError
 import com.nuvio.app.core.storage.DesktopStorage
+import com.nuvio.app.features.vpn.VpnPlatform
+import com.nuvio.app.features.vpn.VpnOperationException
+import com.nuvio.app.features.vpn.VpnRequiredException
+import nuvio.composeapp.generated.resources.Res
+import nuvio.composeapp.generated.resources.vpn_required_download
+import org.jetbrains.compose.resources.getString
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -116,7 +122,7 @@ actual object P2pStreamingEngine {
             ensureCurrentGeneration(generation)
 
             val magnetLink = buildMagnetUri(request.infoHash, request.trackers)
-            log.d { "Starting stream: $magnetLink" }
+            log.d { "Starting torrent stream" }
             _state.value = P2pStreamingState.Connecting(phase = "add_magnet")
 
             val hash = api.addTorrent(magnetLink)
@@ -135,7 +141,7 @@ actual object P2pStreamingEngine {
             ensureCurrentGeneration(generation)
 
             val streamUrl = api.getStreamUrl(hash, resolvedIdx)
-            log.d { "Stream URL: $streamUrl" }
+            log.d { "Torrent stream prepared" }
 
             startStatsPolling(hash, generation)
 
@@ -155,7 +161,8 @@ actual object P2pStreamingEngine {
             throw e
         } catch (e: Exception) {
             if (isCurrentGeneration(generation)) {
-                _state.value = P2pStreamingState.Error(e.message ?: localizedP2pUnknownTorrentError())
+                _state.value = P2pStreamingState.Error(if (e is VpnRequiredException)
+                    getString(Res.string.vpn_required_download) else e.message ?: localizedP2pUnknownTorrentError())
             }
             throw e
         }
@@ -186,6 +193,17 @@ actual object P2pStreamingEngine {
 
     actual fun shutdown() {
         scheduleStop(stopBinary = true)
+    }
+
+    /** Called with the VPN policy gate held, so a concurrent start cannot race the transition. */
+    internal suspend fun stopForVpnTransition() = withContext(Dispatchers.IO) {
+        val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(15)
+        while (hasActiveDownloads()) {
+            if (System.nanoTime() > deadline) throw VpnOperationException("TORRENT_STILL_RUNNING")
+            delay(50)
+        }
+        stopStreamNow(stopBinary = true)
+        if (!binary.confirmStopped()) throw VpnOperationException("TORRENT_STILL_RUNNING")
     }
 
     private fun scheduleStop(stopBinary: Boolean) {
@@ -381,7 +399,7 @@ actual object P2pStreamingEngine {
 
         val baseUrl: String get() = "http://127.0.0.1:$PORT"
 
-        suspend fun start() = withContext(Dispatchers.IO) {
+        suspend fun start() = VpnPlatform.controller().withTorrentPermission { withContext(Dispatchers.IO) {
             if (isRunning()) {
                 log.d { "TorrServer already running" }
                 return@withContext
@@ -413,9 +431,8 @@ actual object P2pStreamingEngine {
             val proc = process!!
             Thread {
                 try {
-                    proc.inputStream.bufferedReader().forEachLine { line ->
-                        log.d { "[server] $line" }
-                    }
+                    // Drain output without storing provider URLs, file names, or torrent identifiers.
+                    proc.inputStream.bufferedReader().forEachLine { }
                 } catch (_: Exception) {
                 }
             }.apply {
@@ -440,7 +457,9 @@ actual object P2pStreamingEngine {
 
             stop()
             throw P2pStreamingException("TorrServer failed to start within ${STARTUP_TIMEOUT_MS / 1000}s")
-        }
+        } }
+
+        fun confirmStopped(): Boolean = !isProcessAlive(process) && !isRunning()
 
         fun isRunning(): Boolean =
             try {
@@ -471,8 +490,10 @@ actual object P2pStreamingEngine {
                     }
                 } catch (_: Exception) {
                     proc.destroyForcibly()
+                    proc.waitFor(3_000L, TimeUnit.MILLISECONDS)
                 }
             }
+            if (isProcessAlive(process)) throw VpnOperationException("TORRENT_STILL_RUNNING")
             process = null
             log.d { "TorrServer stopped" }
         }
@@ -495,6 +516,7 @@ actual object P2pStreamingEngine {
 
         private fun resolveBinaryFile(): File {
             configuredBinaryPath()?.let { configured ->
+                if (VpnPlatform.controller().state.value.enabled) throw VpnOperationException("CUSTOM_ENGINE_UNSUPPORTED")
                 val file = File(configured)
                 if (file.exists() && file.length() > 1024L) return file
                 throw P2pStreamingException("Configured TorrServer binary was not found or invalid at ${file.absolutePath}")
@@ -629,7 +651,7 @@ actual object P2pStreamingEngine {
 
         private val baseUrl: String get() = binary.baseUrl
 
-        suspend fun addTorrent(magnetLink: String, title: String? = null): String? = withContext(Dispatchers.IO) {
+        suspend fun addTorrent(magnetLink: String, title: String? = null): String? = VpnPlatform.controller().withTorrentPermission { withContext(Dispatchers.IO) {
             val body = buildJsonObject {
                 put("action", "add")
                 put("link", magnetLink)
@@ -644,13 +666,13 @@ actual object P2pStreamingEngine {
                     return@withContext null
                 }
                 val hash = response.stringOrNull("hash")
-                log.d { "Torrent added: $hash" }
+                log.d { "Torrent added" }
                 hash?.takeIf { it.isNotBlank() }
             } catch (e: Exception) {
                 log.e(e) { "addTorrent error" }
                 null
             }
-        }
+        } }
 
         suspend fun getTorrentStats(hash: String): TorrServerStats? = withContext(Dispatchers.IO) {
             val body = buildJsonObject {

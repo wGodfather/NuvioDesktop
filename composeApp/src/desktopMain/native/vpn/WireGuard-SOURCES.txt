@@ -1,0 +1,21 @@
+Unmodified official WireGuard Windows runtime, amd64 version 1.1.1.
+Installer: https://download.wireguard.com/windows-client/wireguard-amd64-1.1.1.msi
+Source: https://git.zx2c4.com/wireguard-windows/tag/?h=v1.1.1
+Build recipe: https://git.zx2c4.com/wireguard-windows/tree/build.bat?h=v1.1.1
+Windows client license: MIT; see WireGuard-Windows-LICENSE.txt.
+
+wg.exe corresponding source and build instructions:
+https://git.zx2c4.com/wireguard-tools/snapshot/wireguard-tools-06a99cce2c9998f53eb30d2f258a9e5ff286445b.zip
+https://git.zx2c4.com/wireguard-tools/tree/src/Makefile?id=06a99cce2c9998f53eb30d2f258a9e5ff286445b
+License: GPL-2.0; see WireGuard-Tools-LICENSE.txt.
+
+WireGuardNT 1.1 is embedded by the official Windows client, unchanged.
+https://download.wireguard.com/wireguard-nt/wireguard-nt-1.1.zip
+Source repository: https://git.zx2c4.com/wireguard-nt/
+The prebuilt binary license differs from the source's GPL-2.0 license.
+See WireGuard-NT-LICENSE.txt for the complete prebuilt binary terms.
+Nuvio does not extract, patch, or remove the embedded driver's notices.
+
+NuvioVpn.exe source: composeApp/src/desktopMain/native/vpn in
+https://github.com/wGodfather/NuvioDesktop (GPL-3.0-or-later).
+Build with .github/scripts/build-vpn-runtime.ps1 and .NET Framework 4.8.

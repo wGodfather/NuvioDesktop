@@ -16,6 +16,10 @@ import androidx.compose.material.icons.rounded.People
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Policy
 import androidx.compose.material.icons.rounded.Tune
+import androidx.compose.material.icons.rounded.VpnLock
+import com.nuvio.app.features.vpn.VpnPlatform
+import nuvio.composeapp.generated.resources.vpn_page_title
+import nuvio.composeapp.generated.resources.vpn_root_description
 import androidx.compose.ui.platform.LocalUriHandler
 import nuvio.composeapp.generated.resources.Res
 import nuvio.composeapp.generated.resources.compose_settings_page_account
@@ -67,6 +71,7 @@ internal fun LazyListScope.settingsRootContent(
     onTrackingClick: () -> Unit,
     onSupportersContributorsClick: () -> Unit,
     onLicensesAttributionsClick: () -> Unit,
+    onVpnClick: () -> Unit,
     onCheckForUpdatesClick: (() -> Unit)? = null,
     onTestUpdateBannerClick: (() -> Unit)? = null,
     onDownloadsClick: () -> Unit,
@@ -165,6 +170,16 @@ internal fun LazyListScope.settingsRootContent(
                         isTablet = isTablet,
                         onClick = onIntegrationsClick,
                     )
+                    if (VpnPlatform.controller().state.value.supported) {
+                        SettingsGroupDivider(isTablet = isTablet)
+                        SettingsNavigationRow(
+                            title = stringResource(Res.string.vpn_page_title),
+                            description = stringResource(Res.string.vpn_root_description),
+                            icon = Icons.Rounded.VpnLock,
+                            isTablet = isTablet,
+                            onClick = onVpnClick,
+                        )
+                    }
                     if (showNotificationsEntry) {
                         SettingsGroupDivider(isTablet = isTablet)
                         SettingsNavigationRow(

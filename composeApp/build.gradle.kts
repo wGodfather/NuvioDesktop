@@ -1051,6 +1051,13 @@ tasks.matching { it.name == "prepareAppResources" }.configureEach {
 }
 
 tasks.withType<ProcessResources>().matching { it.name == "desktopProcessResources" }.configureEach {
+    if (isWindowsHost && windowsPlayerBridgeArch == "x64") {
+        dependsOn("buildWindowsVpnRuntime")
+        from(layout.buildDirectory.dir("native/vpn")) {
+            include("NuvioVpn.exe", "wireguard.exe", "wg.exe", "runtime.sha256", "*-LICENSE.txt", "WireGuard-SOURCES.txt")
+            into("vpn/windows-x64")
+        }
+    }
     if (!isWindowsHost) {
         exclude("torrserver/windows-amd64/**")
     }
@@ -1058,6 +1065,18 @@ tasks.withType<ProcessResources>().matching { it.name == "desktopProcessResource
         dependsOn(prepareMacosTorrServerResources)
         from(prepareMacosTorrServerResources.map { it.outputDir })
     }
+}
+
+tasks.register<Exec>("buildWindowsVpnRuntime") {
+    onlyIf { isWindowsHost && windowsPlayerBridgeArch == "x64" }
+    inputs.dir(layout.projectDirectory.dir("src/desktopMain/native/vpn"))
+    inputs.file(rootProject.layout.projectDirectory.file(".github/scripts/build-vpn-runtime.ps1"))
+    outputs.files(listOf("NuvioVpn.exe", "wireguard.exe", "wg.exe", "runtime.sha256", "WireGuard-Windows-LICENSE.txt", "WireGuard-Tools-LICENSE.txt", "WireGuard-NT-LICENSE.txt", "WireGuard-SOURCES.txt").map {
+        layout.buildDirectory.file("native/vpn/$it")
+    })
+    workingDir(rootProject.projectDir)
+    commandLine("powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File",
+        rootProject.file(".github/scripts/build-vpn-runtime.ps1").absolutePath)
 }
 
 if (isWindowsHost) {

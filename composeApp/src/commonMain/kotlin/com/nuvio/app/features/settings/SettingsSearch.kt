@@ -48,6 +48,8 @@ import com.nuvio.app.core.ui.nuvio
 import com.nuvio.app.isDesktop
 import com.nuvio.app.isIos
 import com.nuvio.app.supportsPosterNavigationMotion
+import com.nuvio.app.features.vpn.VpnPlatform
+import androidx.compose.material.icons.rounded.VpnLock
 import nuvio.composeapp.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
 
@@ -229,6 +231,10 @@ internal fun settingsSearchEntries(
         category = advancedCategory,
         icon = Icons.Rounded.Tune,
     )
+    if (VpnPlatform.controller().state.value.supported) {
+        addPage(page = SettingsPage.Vpn, key = "vpn", title = stringResource(Res.string.vpn_page_title),
+            description = stringResource(Res.string.vpn_root_description), icon = Icons.Rounded.VpnLock)
+    }
     addPage(
         page = SettingsPage.ContentDiscovery,
         key = "content-discovery",

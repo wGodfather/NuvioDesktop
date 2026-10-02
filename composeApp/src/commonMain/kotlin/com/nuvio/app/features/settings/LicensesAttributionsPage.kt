@@ -137,6 +137,11 @@ private fun LicensesAttributionsBody(
                 item = platformLicenseItem(),
                 isTablet = isTablet,
             )
+            if (com.nuvio.app.features.vpn.VpnPlatform.controller().state.value.supported) {
+                LicenseRow(item = LicenseItem(titleRes = Res.string.vpn_license_title,
+                    bodyRes = Res.string.vpn_license_body, licenseRes = Res.string.vpn_license_label,
+                    link = "https://github.com/WireGuard/wireguard-windows/tree/v1.1.1"), isTablet = isTablet)
+            }
         }
 
         PlainSettingsStack(
