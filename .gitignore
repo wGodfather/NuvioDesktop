@@ -38,3 +38,8 @@ iosApp/Configuration/DeviceSigning.local.json
 
 # Local MPVKit iOS build environment (sparse APFS image, see MPVKit docs)
 .mpvkit-build.sparseimage
+
+# Local JVM crash dumps and disposable Android QA logs can contain machine data.
+hs_err_pid*.log
+android-seed.log
+android-qa-logcat.txt

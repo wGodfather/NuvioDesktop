@@ -65,7 +65,9 @@ data class DownloadItem(
         get() = status == DownloadStatus.Completed && !localFileUri.isNullOrBlank()
 
     val isP2pDownload: Boolean
-        get() = !p2pInfoHash.isNullOrBlank()
+        get() = !p2pInfoHash.isNullOrBlank() ||
+            sourceUrl.startsWith("magnet:", ignoreCase = true) ||
+            sourceUrl.startsWith("torrent://", ignoreCase = true)
 
     val displaySubtitle: String
         get() = episodeTitle.orEmpty()

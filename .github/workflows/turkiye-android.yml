@@ -1,0 +1,104 @@
+name: Nuvio Türkiye Android
+
+on:
+  workflow_dispatch:
+    inputs:
+      create_draft:
+        description: İmzalı APK dosyalarını taslak sürüme ekle
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: turkiye-android-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      KEYSTORE_BASE64: ${{ secrets.NUVIO_FORK_ANDROID_KEYSTORE_BASE64 }}
+      STORE_PASSWORD: ${{ secrets.NUVIO_FORK_ANDROID_STORE_PASSWORD }}
+      KEY_ALIAS: ${{ secrets.NUVIO_FORK_ANDROID_KEY_ALIAS }}
+      KEY_PASSWORD: ${{ secrets.NUVIO_FORK_ANDROID_KEY_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: android-actions/setup-android@v3
+      - uses: gradle/actions/setup-gradle@v6
+      - name: Fork imzasını hazırla
+        run: |
+          python3 - <<'PY'
+          import base64, os
+          from pathlib import Path
+          for key in ['KEYSTORE_BASE64', 'STORE_PASSWORD', 'KEY_ALIAS', 'KEY_PASSWORD']:
+              if not os.environ.get(key):
+                  raise RuntimeError(f'{key} secret is missing')
+          keyfile = Path(os.environ['RUNNER_TEMP']) / 'nuvio-fork.p12'
+          keyfile.write_bytes(base64.b64decode(os.environ['KEYSTORE_BASE64']))
+          Path('local.properties').write_text('\n'.join([
+              f'NUVIO_RELEASE_STORE_FILE={keyfile}',
+              f'NUVIO_RELEASE_STORE_PASSWORD={os.environ["STORE_PASSWORD"]}',
+              f'NUVIO_RELEASE_KEY_ALIAS={os.environ["KEY_ALIAS"]}',
+              f'NUVIO_RELEASE_KEY_PASSWORD={os.environ["KEY_PASSWORD"]}',
+          ]) + '\n')
+          PY
+          echo "RELEASE_VERSION=$(sed -n 's/^VERSION_NAME=//p' composeApp/Configuration/DesktopVersion.properties | tr -d '\r')" >> "$GITHUB_ENV"
+          chmod +x gradlew
+      - name: Android düzeltme testleri ve imzalı APK
+        run: |
+          ./gradlew :composeApp:testAndroidHostTest --tests '*AndroidTorrentDownloadTest*' --tests '*AndroidDownloadTransferTest*' --tests '*P2pStreamingEngineAndroidTest*' --tests '*TmdbCatalogTransportTest*' --tests '*SearchRequestStateTest*' --tests '*CatalogPaginationStateTest*' --tests '*StreamParserTest*' :androidApp:assembleFullRelease -Pkotlin.compiler.execution.strategy=in-process -PreleaseMinifyEnabled=false --max-workers=1 --no-configuration-cache --no-daemon
+          mkdir -p dist
+          for apk in androidApp/build/outputs/apk/full/release/*.apk; do
+            abi=$(basename "$apk" | sed 's/androidApp-full-//;s/-release.apk//')
+            target="dist/Nuvio-Android-$abi-$RELEASE_VERSION.apk"
+            cp "$apk" "$target"
+            sha256sum "$target" > "$target.sha256"
+          done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Nuvio-Android-${{ env.RELEASE_VERSION }}
+          path: dist/*
+          if-no-files-found: error
+      - name: Android test cihazı için KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Android cihazında canlı arama ve gerçek torrent testi
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 36
+          target: default
+          arch: x86_64
+          ram-size: 1536M
+          disk-size: 2048M
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
+          disable-animations: true
+          script: bash .github/scripts/run-android-fork-qa.sh
+      - name: Android test raporları
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Nuvio-Android-QA-${{ env.RELEASE_VERSION }}
+          path: |
+            composeApp/build/test-results/testAndroidHostTest
+            androidApp/build/reports/androidTests
+            androidApp/build/outputs/androidTest-results
+            android-seed.log
+            android-qa-logcat.txt
+      - name: Taslak sürüm
+        if: inputs.create_draft
+        run: |
+          if gh release view "$RELEASE_VERSION" --repo "$GITHUB_REPOSITORY" --json isDraft > /tmp/nuvio-release.json; then
+            python3 -c 'import json; assert json.load(open("/tmp/nuvio-release.json"))["isDraft"], "Refusing to modify a published release"'
+            gh release upload "$RELEASE_VERSION" dist/* --repo "$GITHUB_REPOSITORY" --clobber
+          else
+            gh release create "$RELEASE_VERSION" dist/* --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --draft --prerelease --title "Nuvio Türkiye $RELEASE_VERSION" --notes-file RELEASE_NOTES_TR.md
+          fi

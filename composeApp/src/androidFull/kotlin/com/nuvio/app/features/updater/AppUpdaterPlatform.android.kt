@@ -6,12 +6,13 @@ actual object AppUpdaterPlatform {
     actual val isSupported: Boolean = true
     actual val isDebugBuild: Boolean
         get() = AndroidAppUpdaterPlatform.isDebugBuild()
-    actual val hasSingleUpdateChannel: Boolean = false
+    actual val hasSingleUpdateChannel: Boolean = true
 
     actual val releaseSource: AppUpdateReleaseSource = AppUpdateReleaseSource(
-        owner = "NuvioMedia",
-        repo = "NuvioMobile",
-        channelBranch = "cmp-rewrite",
+        owner = "wGodfather",
+        repo = "NuvioDesktop",
+        channelBranch = null,
+        includePrereleases = true,
         userAgent = "NuvioMobile",
     )
 
@@ -23,7 +24,7 @@ actual object AppUpdaterPlatform {
             fallbackNameFragments = listOf("universal", "all"),
         )
 
-    actual val currentVersionName: String = AppVersionConfig.VERSION_NAME
+    actual val currentVersionName: String = AppVersionConfig.DESKTOP_VERSION_NAME
 
     actual fun getSupportedAbis(): List<String> = AndroidAppUpdaterPlatform.getSupportedAbis()
 

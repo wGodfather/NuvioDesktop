@@ -184,7 +184,7 @@ import nuvio.composeapp.generated.resources.*
 import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringResource
 import androidx.compose.runtime.rememberUpdatedState
-import androidx.compose.ui.input.pointer.PointerButton
+import com.nuvio.app.core.ui.isNavigationBackButton
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.pointerInput
 import com.nuvio.app.core.ui.AppPresenceState
@@ -1249,7 +1249,7 @@ internal fun MainAppContent(
                                 val event = awaitPointerEvent()
                                 if (event.type == PointerEventType.Press) {
                                     if (!event.changes.any { it.isConsumed }) {
-                                        if (event.button == PointerButton.Back) {
+                                        if (event.isNavigationBackButton()) {
                                             event.changes.forEach { it.consume() }
                                             navController.popBackStack()
                                         }

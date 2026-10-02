@@ -37,13 +37,13 @@ val sentryAuthToken = envOrLocalProperty("SENTRY_AUTH_TOKEN")
 val sentryOrg = envOrLocalProperty("SENTRY_ORG")
 val sentryProject = envOrLocalProperty("SENTRY_PROJECT")
 val sentryMappingUploadEnabled = sentryAuthToken != null && sentryOrg != null && sentryProject != null
-val appVersionConfigFile = rootProject.file("iosApp/Configuration/Version.xcconfig")
+val appVersionConfigFile = rootProject.file("composeApp/Configuration/DesktopVersion.properties")
 val releaseAppVersionName = providers.gradleProperty("nuvio.app.versionName").orNull
-    ?: readXcconfigValue(appVersionConfigFile, "MARKETING_VERSION")
-    ?: error("MARKETING_VERSION is missing from ${appVersionConfigFile.path}")
-val releaseAppVersionCode = readXcconfigValue(appVersionConfigFile, "CURRENT_PROJECT_VERSION")
+    ?: readXcconfigValue(appVersionConfigFile, "VERSION_NAME")
+    ?: error("VERSION_NAME is missing from ${appVersionConfigFile.path}")
+val releaseAppVersionCode = readXcconfigValue(appVersionConfigFile, "VERSION_CODE")
     ?.toIntOrNull()
-    ?: error("CURRENT_PROJECT_VERSION is missing or invalid in ${appVersionConfigFile.path}")
+    ?: error("VERSION_CODE is missing or invalid in ${appVersionConfigFile.path}")
 val requestedTaskNames = gradle.startParameter.taskNames.map { it.substringAfterLast(':') }
 val buildsReleaseApks = requestedTaskNames.any {
     it.startsWith("assemble", ignoreCase = true) && it.endsWith("Release", ignoreCase = true)
@@ -66,7 +66,8 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.nuvio.app"
+        // Independent signature and package for this fork; the official app can coexist.
+        applicationId = "com.wgodfather.nuvio"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
         versionCode = releaseAppVersionCode
@@ -145,7 +146,7 @@ android {
 
 androidComponents {
     onVariants(selector().withBuildType("debug")) { variant ->
-        variant.applicationId.set("com.nuviodebug.com")
+        variant.applicationId.set("com.wgodfather.nuvio.debug")
     }
 }
 

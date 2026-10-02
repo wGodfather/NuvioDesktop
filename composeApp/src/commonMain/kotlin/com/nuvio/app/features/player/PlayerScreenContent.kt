@@ -10,7 +10,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.PointerButton
+import com.nuvio.app.core.ui.isNavigationBackButton
+import com.nuvio.app.core.ui.isNavigationForwardButton
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
@@ -90,9 +91,9 @@ internal fun PlayerScreenContent(args: PlayerScreenArgs) {
                     while (true) {
                         val event = awaitPointerEvent(PointerEventPass.Initial)
                         if (event.type == PointerEventType.Press) {
-                            if (event.button == PointerButton.Back) {
+                            if (event.isNavigationBackButton()) {
                                 event.changes.forEach { it.consume() }
-                            } else if (event.button == PointerButton.Forward) {
+                            } else if (event.isNavigationForwardButton()) {
                                 event.changes.forEach { it.consume() }
                             }
                         }

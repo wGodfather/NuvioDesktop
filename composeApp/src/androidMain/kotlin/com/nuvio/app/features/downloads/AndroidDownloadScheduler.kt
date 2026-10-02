@@ -143,7 +143,9 @@ internal class AndroidDownloadScheduler(val context: Context) {
         val fileName = transfer.item.fileName
         if (!isActive(transfer)) return@withLock false
         val destination = File(directory, fileName)
-        val client = if (network != null) {
+        // Engine routes are on loopback; binding that request to a Wi-Fi/cellular
+        // JobScheduler network can make localhost unreachable.
+        val client = if (network != null && !transfer.item.isP2pDownload) {
             downloadHttpClient.newBuilder()
                 .socketFactory(network.socketFactory)
                 .dns { network.getAllByName(it).toList() }
@@ -155,23 +157,35 @@ internal class AndroidDownloadScheduler(val context: Context) {
             currentCoroutineContext().ensureActive()
             if (!isActive(transfer)) return@withLock false
             var lastProgressAt = 0L
-            val partial = if (destination.isFile) destination else transferAndroidDownload(
+            val onHeaders: (Long?, String?) -> Unit = { total, validator ->
+                updateActive(transfer) { it.copy(validator = validator, item = it.item.copy(totalBytes = total)) }
+            }
+            val progress: (Long, Long?) -> Unit = { bytes, total ->
+                val now = SystemClock.elapsedRealtime()
+                if (now - lastProgressAt >= 1_000L || bytes == total) {
+                    lastProgressAt = now
+                    updateActive(transfer) {
+                        it.copy(item = it.item.copy(downloadedBytes = bytes, totalBytes = total))
+                    }?.let(onProgress)
+                }
+            }
+            if (transfer.item.isHlsDownload) throw IOException("HLS offline downloads are not supported on Android yet")
+            val partial = if (destination.isFile) destination else if (transfer.item.isP2pDownload) {
+                transferAndroidTorrentDownload(
+                    item = transfer.item,
+                    directory = directory,
+                    validator = transfer.validator,
+                    session = NuvioEngineDownloadSession(context),
+                    onHeaders = onHeaders,
+                    onProgress = progress,
+                )
+            } else transferAndroidDownload(
                 item = transfer.item,
                 directory = directory,
                 validator = transfer.validator,
                 client = client,
-                onHeaders = { total, validator ->
-                    updateActive(transfer) { it.copy(validator = validator, item = it.item.copy(totalBytes = total)) }
-                },
-                onProgress = { bytes, total ->
-                    val now = SystemClock.elapsedRealtime()
-                    if (now - lastProgressAt >= 1_000L || bytes == total) {
-                        lastProgressAt = now
-                        updateActive(transfer) {
-                            it.copy(item = it.item.copy(downloadedBytes = bytes, totalBytes = total))
-                        }?.let(onProgress)
-                    }
-                },
+                onHeaders = onHeaders,
+                onProgress = progress,
             )
             currentCoroutineContext().ensureActive()
             updateActive(transfer) { current ->
@@ -198,7 +212,7 @@ internal class AndroidDownloadScheduler(val context: Context) {
             else fail(transfer, error)
             retry
         } finally {
-            if (network != null) withContext(NonCancellable + Dispatchers.IO) { client.connectionPool.evictAll() }
+            if (network != null && !transfer.item.isP2pDownload) withContext(NonCancellable + Dispatchers.IO) { client.connectionPool.evictAll() }
         }
     }
 

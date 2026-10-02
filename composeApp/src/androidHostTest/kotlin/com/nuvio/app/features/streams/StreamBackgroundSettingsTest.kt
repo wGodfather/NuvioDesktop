@@ -144,6 +144,9 @@ class StreamBackgroundSettingsTest {
                     liquidGlassNativeTabBarSupported = false,
                     switchProfileAvailable = false,
                     checkForUpdatesAvailable = false,
+                    downloadsEnabled = true,
+                    notificationsEnabled = false,
+                    externalPlayerSupported = false,
                 )
             }
         }
