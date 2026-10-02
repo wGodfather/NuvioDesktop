@@ -48,6 +48,8 @@ namespace NuvioVpn {
                 + key + "\nAllowedIPs = 0.0.0.0/0, ::/0\nEndpoint = 192.0.2.1:51820\n";
         }
         internal static int Run() {
+            Assert(Program.ReadBounded(new StringReader("status\r\n"), 512) == "status", "CRLF command framing");
+            Assert(Program.ReadBounded(new StringReader("status\n"), 512) == "status", "LF command framing");
             string fixture = Fixture();
             Profile profile = Profile.Parse(fixture);
             Assert(profile.Port == 51820 && profile.Endpoint.ToString() == "192.0.2.1", "endpoint");

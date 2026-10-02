@@ -60,7 +60,8 @@ namespace NuvioVpn {
                 if (builder.Length >= maximum) throw new VpnError("REQUEST_TOO_LARGE");
                 builder.Append((char)c);
             }
-            return builder.ToString();
+            // Both Console and StreamWriter use CRLF on Windows; the protocol delimiter is LF.
+            return builder.ToString().TrimEnd('\r');
         }
         static int Client() {
             string request = ReadBounded(Console.In, 24000);
@@ -93,6 +94,7 @@ namespace NuvioVpn {
                 string from = Path.Combine(source, name), to = Path.Combine(Root, name);
                 EnsureNoReparse(to);
                 if (!string.Equals(Path.GetFullPath(from), Path.GetFullPath(to), StringComparison.OrdinalIgnoreCase)) File.Copy(from, to, true);
+                ProtectFile(to);
             }
             File.WriteAllText(OwnerFile, owner.Value, new UTF8Encoding(false));
             using (var scm = NativeScm.Open()) {
@@ -123,12 +125,24 @@ namespace NuvioVpn {
         }
         static void ProtectDirectory(string path, bool usersRead) {
             var acl = new DirectorySecurity(); acl.SetAccessRuleProtection(true, false);
+            acl.SetOwner(new SecurityIdentifier(WellKnownSidType.BuiltinAdministratorsSid, null));
             foreach (WellKnownSidType sid in new[] { WellKnownSidType.LocalSystemSid, WellKnownSidType.BuiltinAdministratorsSid })
                 acl.AddAccessRule(new FileSystemAccessRule(new SecurityIdentifier(sid, null), FileSystemRights.FullControl,
                     InheritanceFlags.ContainerInherit | InheritanceFlags.ObjectInherit, PropagationFlags.None, AccessControlType.Allow));
             if (usersRead) acl.AddAccessRule(new FileSystemAccessRule(new SecurityIdentifier(WellKnownSidType.BuiltinUsersSid, null),
                 FileSystemRights.ReadAndExecute, InheritanceFlags.ContainerInherit | InheritanceFlags.ObjectInherit, PropagationFlags.None, AccessControlType.Allow));
             Directory.SetAccessControl(path, acl);
+        }
+        static void ProtectFile(string path) {
+            // CopyFile may copy the user's source DACL. Never let a cached binary's owner or
+            // explicit write permission survive installation into the SYSTEM service directory.
+            var acl = new FileSecurity(); acl.SetAccessRuleProtection(true, false);
+            acl.SetOwner(new SecurityIdentifier(WellKnownSidType.BuiltinAdministratorsSid, null));
+            foreach (WellKnownSidType sid in new[] { WellKnownSidType.LocalSystemSid, WellKnownSidType.BuiltinAdministratorsSid })
+                acl.AddAccessRule(new FileSystemAccessRule(new SecurityIdentifier(sid, null), FileSystemRights.FullControl, AccessControlType.Allow));
+            acl.AddAccessRule(new FileSystemAccessRule(new SecurityIdentifier(WellKnownSidType.BuiltinUsersSid, null),
+                FileSystemRights.ReadAndExecute, AccessControlType.Allow));
+            File.SetAccessControl(path, acl);
         }
         internal static string Quote(string text) {
             if (text.Contains("\"") || text.Contains("\r") || text.Contains("\n")) throw new VpnError("UNSAFE_PATH");
