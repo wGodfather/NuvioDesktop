@@ -5,6 +5,9 @@ Bu çalışma yalnızca `wGodfather/NuvioDesktop` fork'u içindir. Yayımlanmı�
 tamamlandıktan sonra 0.1.29-alpha olarak hazırlanacaktır. Android, Android TV,
 iOS, macOS ve Linux için bağlantı desteği bu değişiklikte etkinleştirilmez.
 
+Kaynak değişikliği: https://github.com/wGodfather/NuvioDesktop/pull/1 (taslak).
+Uygulama ve test kodu hazırlanmıştır; aşağıdaki yayın kontrolleri devam eder.
+
 ## Kullanım
 
 Windows x64 ayarlarında **WireGuard VPN** sayfası bulunur. Varsayılan kapalıdır.
@@ -60,8 +63,11 @@ servisle otomatik bütünleşmesi henüz yayın kontrolüdür; elle kaldırma ko
 
 ## Doğrulama ve yayın koşulları
 
-Yerel testler VPN açık/kapalı politikası, kesinti, iptal, motor başlatma kilidi,
-profil doğrulaması, yerel protokol ve DPAPI şifreleme davranışını kapsar.
+Başarılı kontroller (2 Ekim 2026): masaüstünde 17 VPN politika/protokol testi ve
+3 torrent bağlantı testi; Android'de 15 ortak VPN politikası ve 14 mevcut torrent
+testi; yardımcı serviste 23 profil, çerçeveleme, sahte servis reddi ve DPAPI testi.
+Android testleri Windows geliştirmesinin ortak kodunu doğrular, Android VPN
+bağlantı desteği anlamına gelmez.
 `.github/workflows/vpn-windows-tests.yml` güvenlik duvarı ve servis testlerini
 geçici Windows yöneticili makinede çalıştırır. Kullanıcının bilgisayarında internet
 kesen testler çalıştırılmaz.
@@ -73,6 +79,13 @@ sunucusu kullanıcıların VPN sağlayıcısı olarak sunulmaz. Kullanıcının 
 anahtarı gerekmez. Gösterim sunucusu erişilemezse test başarısız olur; doğrulanmış
 bağlantı iddiasında bulunulmaz.
 
+Geçici Windows makinesinde 6 bağımsız WFP kontrolü ve 16 servis/gerçek eş kontrolü
+geçti: normal kullanıcı hesabıyla servis iletişimi, bağlantı öncesi/sırası/sonrası
+fiziksel IPv4 çıkışının engellenmesi, şifreli profil, gerçek WireGuard el sıkışması,
+servis yeniden başlatma ve koruma kaldırıldıktan sonra internetin geri gelmesi.
+Başarılı çalışma: https://github.com/wGodfather/NuvioDesktop/actions/runs/37012387081
+Bu testler tam DNS/IPv6/torrent sızıntı testi veya hız testi yerine geçmez.
+
 Yayımdan önce tamamlanacaklar:
 
 - P2P'yi destekleyen gerçek sağlayıcıyla çıkış IP'si, torrent yükleme/indirme,
@@ -80,7 +93,8 @@ Yayımdan önce tamamlanacaklar:
 - Fiziksel ağ değişimi, uyku/uyanma, uygulama/servis çökmesi, Windows yeniden
   başlatma ve eski soketlerin koruma açılırken yeniden denetlenmesi.
 - VPN yardımcı servisinin imzası ve MSI kurulum/yükseltme/kaldırma yaşam döngüsü.
-- Yönetici olmayan kullanıcı, ikinci kullanıcı, başka VPN ve Windows sürümleri.
+- İkinci kullanıcı, başka VPN, Windows sürümleri ve fiziksel bilgisayarda
+  yönetici olmayan kullanıcı kabul testleri. CI'da normal kullanıcı hesabı geçti.
 - Fiziksel bilgisayarda ayar ekranı ve oynatıcı/indirme kabul testleri.
 
 Bu kontroller tamamlanmadan deneysel işaret kaldırılmaz, dal birleştirilmez ve

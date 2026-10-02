@@ -78,6 +78,10 @@ Eklenti arama protokolü `docs/tmdb-catalogs.md` içinde açıklanır.
 
 ## Bileşenler ve lisans
 
+İsteğe bağlı Windows WireGuard VPN çalışması deneysel ayrı dalda hazırlanır;
+yayımlanmış sürüme henüz eklenmemiştir. Kapsam, testler ve yayın koşulları
+`VPN_IMPLEMENTATION_TR.md`, ayrıntılı plan `VPN_PLAN_TR.md` dosyalarındadır.
+
 Asıl proje ve fork GPL-3.0 lisansını korur; `LICENSE` dosyasına bakın. Windows video
 denetleyicisi Git LFS ile taşınan FFmpeg/ffprobe 8.1.1 Gyan full build'dir. Lisans:
 `composeApp/src/desktopMain/resources/verification/windows/FFmpeg-LICENSE.txt`.
