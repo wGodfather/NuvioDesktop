@@ -1,3 +1,12 @@
+> **Nuvio Türkiye fork'u (wGodfather)**
+>
+> `turkiye` dalı Windows ve Android full sürümlerini içerir. Türkçe eklenti araması,
+> tür filtresi/sayfalama ve torrent indirmesi düzeltmeleri bu daldadır. Android APK
+> resmî Nuvio ile yan yana kurulabilir. Android HLS çevrimdışı indirme henüz desteklenmez.
+> Kurulum paketleri şu anda **taslak** durumundadır; yayımlanmadı.
+> Derleme, güncelleme ve test bilgileri: [FORK_TR.md](FORK_TR.md).
+> Asıl projenin açıklaması ve lisansı aşağıda korunmuştur.
+
 <div align="center">
 
   <img src="composeApp/src/commonMain/composeResources/drawable/app_logo_wordmark.png" alt="Nuvio" width="300" />
