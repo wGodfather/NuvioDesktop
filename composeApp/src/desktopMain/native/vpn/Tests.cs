@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Net;
 using System.Net.Sockets;
+using System.IO.Pipes;
 using System.Threading.Tasks;
 
 namespace NuvioVpn {
@@ -50,6 +51,14 @@ namespace NuvioVpn {
         internal static int Run() {
             Assert(Program.ReadBounded(new StringReader("status\r\n"), 512) == "status", "CRLF command framing");
             Assert(Program.ReadBounded(new StringReader("status\n"), 512) == "status", "LF command framing");
+            string fakeName = "nuvio-test-" + Guid.NewGuid().ToString("N");
+            using (var impostor = new NamedPipeServerStream(fakeName, PipeDirection.InOut, 1, PipeTransmissionMode.Byte, PipeOptions.Asynchronous))
+            using (var client = new NamedPipeClientStream(".", fakeName, PipeDirection.InOut)) {
+                Task connection = impostor.WaitForConnectionAsync(); client.Connect(3000);
+                if (!connection.Wait(3000)) throw new Exception("Fake pipe test timed out");
+                try { Program.VerifyPipeServer(client); throw new Exception("Untrusted pipe accepted"); }
+                catch (VpnError error) { Assert(error.Code == "UNTRUSTED_SERVICE", "untrusted broker rejected before key transfer"); }
+            }
             string fixture = Fixture();
             Profile profile = Profile.Parse(fixture);
             Assert(profile.Port == 51820 && profile.Endpoint.ToString() == "192.0.2.1", "endpoint");
