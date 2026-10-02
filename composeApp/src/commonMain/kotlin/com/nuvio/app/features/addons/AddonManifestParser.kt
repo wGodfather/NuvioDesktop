@@ -26,7 +26,7 @@ internal object AddonManifestParser {
         val defaultTypes = root.stringList("types")
         val defaultPrefixes = root.stringList("idPrefixes")
 
-        return AddonManifest(
+        val manifest = AddonManifest(
             id = root.requiredString("id"),
             name = root.requiredString("name"),
             description = root.optionalString("description").orEmpty(),
@@ -39,6 +39,7 @@ internal object AddonManifestParser {
             behaviorHints = root.behaviorHints(),
             transportUrl = manifestUrl,
         )
+        return TmdbCatalogTransport.configure(manifest, root["nuvioTmdb"] as? JsonObject)
     }
 
     private fun JsonObject.resources(

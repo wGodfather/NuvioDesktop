@@ -13,6 +13,10 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.intOrNull
 
 const val CATALOG_PAGE_SIZE = 100
 private const val DUPLICATE_CATALOG_PAGE_ADVANCE_LIMIT = 3
@@ -93,16 +97,21 @@ suspend fun fetchCatalogPage(
         payload = payload,
         maxItems = maxItems,
     )
-    val nextSkip = if (parsed.rawItemCount > 0) {
-        (skip ?: 0) + parsed.rawItemCount
-    } else {
-        null
-    }
+    val nextSkip = catalogNextSkip(payload, skip ?: 0, parsed.rawItemCount)
     return CatalogPage(
         items = parsed.items,
         rawItemCount = parsed.rawItemCount,
         nextSkip = nextSkip,
     )
+}
+
+internal fun catalogNextSkip(payload: String, skip: Int, rawItemCount: Int): Int? {
+    val root = Json.parseToJsonElement(payload) as? JsonObject
+    // Dynamic providers know the server's total page count, including a partial final page.
+    if (root != null && "nuvioNextSkip" in root) {
+        return (root["nuvioNextSkip"] as? JsonPrimitive)?.intOrNull?.takeIf { it > skip }
+    }
+    return if (rawItemCount > 0) skip + rawItemCount else null
 }
 
 private data class CatalogFetchKey(

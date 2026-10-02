@@ -197,6 +197,13 @@ private fun String.encodeP2pQueryValue(): String = buildString {
 
 private const val HEX_DIGITS = "0123456789ABCDEF"
 
+internal fun buildTorrServerStreamUrl(baseUrl: String, torrentHash: String, fileId: Int): String {
+    require(fileId > 0)
+    // The torrent was already added. A hash avoids TorrServer decoding the
+    // display name in a magnet a second time (including embedded newlines).
+    return "${baseUrl.trimEnd('/')}/stream?link=${canonicalP2pInfoHash(torrentHash)}&index=$fileId&play"
+}
+
 sealed class P2pStreamingState {
     data object Idle : P2pStreamingState()
 

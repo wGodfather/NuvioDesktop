@@ -13,6 +13,7 @@ sealed interface CatalogTarget {
         val catalogId: String,
         val genre: String? = null,
         override val supportsPagination: Boolean = false,
+        val search: String? = null,
     ) : CatalogTarget
 
     data class Library(

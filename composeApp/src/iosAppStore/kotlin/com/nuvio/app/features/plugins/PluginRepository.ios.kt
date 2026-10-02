@@ -48,6 +48,7 @@ actual object PluginRepository {
         mediaType: String,
         season: Int?,
         episode: Int?,
+        respectSearchPause: Boolean,
     ): Result<List<PluginRuntimeResult>> =
         Result.failure(UnsupportedOperationException(getString(Res.string.plugins_error_unavailable_build)))
 }

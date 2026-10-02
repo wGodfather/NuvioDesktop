@@ -32,6 +32,7 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.intOrNull
+import kotlinx.serialization.json.longOrNull
 import kotlinx.serialization.json.jsonPrimitive
 import nuvio.composeapp.generated.resources.Res
 import nuvio.composeapp.generated.resources.generic_unknown
@@ -242,6 +243,9 @@ internal object PluginRuntime {
                     seeders = item["seeders"]?.jsonPrimitive?.intOrNull,
                     peers = item["peers"]?.jsonPrimitive?.intOrNull,
                     infoHash = item.stringOrNull("infoHash"),
+                    fileIdx = item["fileIdx"]?.jsonPrimitive?.intOrNull,
+                    filename = (item["behaviorHints"] as? JsonObject)?.stringOrNull("filename") ?: item.stringOrNull("filename"),
+                    videoSize = (item["behaviorHints"] as? JsonObject)?.get("videoSize")?.jsonPrimitive?.longOrNull,
                     headers = headers,
                     subtitles = subtitles,
                 )

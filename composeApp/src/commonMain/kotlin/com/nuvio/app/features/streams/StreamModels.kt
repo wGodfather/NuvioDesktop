@@ -30,12 +30,21 @@ data class StreamItem(
     val debridCacheStatus: StreamDebridCacheStatus? = null,
     val externalSubtitles: List<StreamSubtitle> = emptyList(),
     val badges: List<StreamBadge> = emptyList(),
+    val verifiedMedia: VerifiedStreamMedia? = null,
 ) {
     val streamLabel: String
         get() = name?.takeIf { it.isNotBlank() } ?: "Stream"
 
     val streamSubtitle: String?
         get() = description
+
+    val verifiedDisplayLabel: String
+        get() {
+            val media = verifiedMedia ?: return streamLabel
+            return if (isTorrentStream) streamLabel else streamLabel.replace(
+                Regex("(?i)\\[(?:[48]k|2160p|1440p|1080p|720p|480p)[^\\]]*\\]"), "[${media.width}×${media.height}]",
+            )
+        }
 
     val directPlaybackUrl: String?
         get() = url?.trim()?.takeIf { it.isNotEmpty() }

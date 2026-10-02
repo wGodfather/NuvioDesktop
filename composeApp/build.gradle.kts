@@ -825,7 +825,10 @@ val windowsCppRuntimeDllNames = listOf(
 )
 val windowsCppRuntimeDlls = if (isWindowsHost) {
     windowsCppRuntimeDllNames
-        .map { File("C:/Windows/System32", it) }
+        .map { name ->
+            windowsLibmpvRuntimeDir?.resolve(name)?.takeIf(File::isFile)
+                ?: File("C:/Windows/System32", name)
+        }
         .filter(File::exists)
 } else {
     emptyList()
@@ -951,8 +954,10 @@ val buildWindowsPlayerBridge = tasks.register<Exec>("buildWindowsPlayerBridge") 
 val prepareWindowsPlayerRuntime = tasks.register<Sync>("prepareWindowsPlayerRuntime") {
     enabled = isWindowsHost
     into(windowsPlayerRuntimeOutput)
-    if (windowsWebView2LoaderDll.exists()) {
-        from(windowsWebView2LoaderDll)
+    val loaderDll = windowsLibmpvRuntimeDir?.resolve("WebView2Loader.dll")?.takeIf(File::isFile)
+        ?: windowsWebView2LoaderDll
+    if (loaderDll.exists()) {
+        from(loaderDll)
     }
     windowsCppRuntimeDlls.forEach { dllFile ->
         from(dllFile)
@@ -961,6 +966,7 @@ val prepareWindowsPlayerRuntime = tasks.register<Sync>("prepareWindowsPlayerRunt
         windowsLibmpvRuntimeDir?.exists() == true -> {
             from(windowsLibmpvRuntimeDir) {
                 include("*.dll")
+                exclude(windowsCppRuntimeDllNames + "WebView2Loader.dll")
             }
         }
         windowsLibmpvDll?.exists() == true -> {
@@ -1322,6 +1328,9 @@ compose.desktop {
         val smokePlayerUrl = providers.gradleProperty("nuvio.desktop.smokePlayerUrl").orNull
             ?: System.getenv("NUVIO_DESKTOP_SMOKE_PLAYER_URL")
         jvmArgs += listOfNotNull(
+            // jpackage expands APPDIR before the JVM starts. Avoid Windows TEMP
+            // aliases/virtualization breaking the HTTP client's selector pipe.
+            if (isWindowsHost) "-Djdk.net.unixdomain.tmpdir=\$APPDIR" else null,
             "-Dapple.awt.application.appearance=NSAppearanceNameDarkAqua",
             // Keep AWT from loading its own GTK (Swing L&F/file dialogs): the
             // bridge owns the process's GTK via initGtkEarly (skoruppa's fix).
@@ -1335,6 +1344,9 @@ compose.desktop {
         )
 
         nativeDistributions {
+            providers.gradleProperty("nuvio.desktop.distributionDir").orNull?.let {
+                outputBaseDir.set(file(it))
+            }
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb, TargetFormat.Rpm, TargetFormat.AppImage)
             packageName = "Nuvio"
             packageVersion = desktopReleasePackageVersion

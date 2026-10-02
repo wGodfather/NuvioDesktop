@@ -30,7 +30,6 @@ import kotlinx.serialization.json.doubleOrNull
 import kotlinx.serialization.json.put
 import java.io.File
 import java.net.URI
-import java.net.URLEncoder
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
@@ -57,6 +56,43 @@ actual object P2pStreamingEngine {
     private var streamGeneration = 0L
     private val binary = TorrServerBinary()
     private val api = TorrServerApi(binary)
+    private val activeDownloadCount = java.util.concurrent.atomic.AtomicInteger(0)
+    private val torrentLeases = mutableMapOf<String, Int>()
+
+    internal fun incrementActiveDownloads() = activeDownloadCount.incrementAndGet()
+    internal fun decrementActiveDownloads() = activeDownloadCount.decrementAndGet().coerceAtLeast(0)
+    internal fun hasActiveDownloads(): Boolean = activeDownloadCount.get() > 0
+
+    internal suspend fun ensureTorrServerRunning() = withContext(Dispatchers.IO) {
+        binary.start()
+    }
+
+    internal suspend fun addTorrent(magnetLink: String, title: String? = null): String? {
+        val hash = api.addTorrent(magnetLink, title) ?: return null
+        synchronized(lifecycleLock) { torrentLeases[hash] = (torrentLeases[hash] ?: 0) + 1 }
+        return hash
+    }
+
+    internal suspend fun resolveTorrentFileIndex(hash: String, requestedIdx: Int?, filename: String?): Int =
+        resolveFileIndex(hash, requestedIdx, filename)
+
+    internal fun getTorrentStreamUrl(torrentHash: String, fileIdx: Int): String =
+        api.getStreamUrl(torrentHash, fileIdx)
+
+    internal suspend fun dropTorrent(hash: String) {
+        val shouldDrop = synchronized(lifecycleLock) {
+            val count = ((torrentLeases[hash] ?: 1) - 1).coerceAtLeast(0)
+            if (count == 0) torrentLeases.remove(hash) else torrentLeases[hash] = count
+            count == 0 && currentHash != hash
+        }
+        if (shouldDrop) api.dropTorrent(hash)
+    }
+
+    internal suspend fun torrentFiles(hash: String): List<VerifiedTorrentFile> =
+        api.getTorrentStats(hash)?.files.orEmpty().map { VerifiedTorrentFile(it.id, it.path, it.length) }
+
+    internal fun buildP2pMagnet(infoHash: String, extraTrackers: List<String>): String =
+        buildMagnetUri(infoHash, extraTrackers)
 
     init {
         Runtime.getRuntime().addShutdownHook(
@@ -98,7 +134,7 @@ actual object P2pStreamingEngine {
             )
             ensureCurrentGeneration(generation)
 
-            val streamUrl = api.getStreamUrl(magnetLink, resolvedIdx)
+            val streamUrl = api.getStreamUrl(hash, resolvedIdx)
             log.d { "Stream URL: $streamUrl" }
 
             startStatsPolling(hash, generation)
@@ -184,13 +220,14 @@ actual object P2pStreamingEngine {
     private suspend fun cleanupDetachedStream(hash: String?, stopBinary: Boolean) {
         hash?.let {
             try {
-                api.dropTorrent(it)
+                val shouldDrop = synchronized(lifecycleLock) { currentHash != it && (torrentLeases[it] ?: 0) == 0 }
+                if (shouldDrop) api.dropTorrent(it)
             } catch (e: Exception) {
                 log.w(e) { "Error dropping torrent" }
             }
         }
 
-        if (stopBinary) {
+        if (stopBinary && !hasActiveDownloads()) {
             try {
                 binary.stop()
             } catch (e: Exception) {
@@ -228,7 +265,7 @@ actual object P2pStreamingEngine {
     }
 
     private suspend fun resolveFileIndex(hash: String, requestedIdx: Int?, filename: String?): Int {
-        val deadline = System.currentTimeMillis() + 15_000L
+        val deadline = System.currentTimeMillis() + 60_000L
         var files: List<TorrServerFile> = emptyList()
 
         while (System.currentTimeMillis() < deadline) {
@@ -239,9 +276,7 @@ actual object P2pStreamingEngine {
         }
 
         if (files.isEmpty()) {
-            val fallback = requestedIdx?.plus(1) ?: 1
-            log.w { "No files after metadata timeout, guessing index $fallback" }
-            return fallback
+            throw P2pStreamingException("Torrent dosya bilgileri alınamadı. Kaynakta erişilebilir eş bulunamadı; başka kaynak seçin veya yeniden deneyin.")
         }
 
         if (!filename.isNullOrBlank()) {
@@ -461,13 +496,13 @@ actual object P2pStreamingEngine {
         private fun resolveBinaryFile(): File {
             configuredBinaryPath()?.let { configured ->
                 val file = File(configured)
-                if (file.exists()) return file
-                throw P2pStreamingException("Configured TorrServer binary was not found at ${file.absolutePath}")
+                if (file.exists() && file.length() > 1024L) return file
+                throw P2pStreamingException("Configured TorrServer binary was not found or invalid at ${file.absolutePath}")
             }
 
             val platform = DesktopTorrServerPlatform.current()
             localBinaryCandidates(platform)
-                .firstOrNull(File::exists)
+                .firstOrNull { it.exists() && it.length() > 1024L }
                 ?.let { return it }
 
             extractBundledBinary(platform)?.let { return it }
@@ -486,6 +521,7 @@ actual object P2pStreamingEngine {
 
         private fun localBinaryCandidates(platform: DesktopTorrServerPlatform): List<File> =
             listOf(
+                DesktopStorage.rootDir.resolve("torrserver/bin/${platform.resourceDir}/${platform.binaryName}").toFile(),
                 File("composeApp/build/native/torrserver/${platform.resourceDir}/${platform.binaryName}"),
                 File("build/native/torrserver/${platform.resourceDir}/${platform.binaryName}"),
                 File("composeApp/src/desktopMain/native/torrserver/${platform.resourceDir}/${platform.binaryName}"),
@@ -496,10 +532,14 @@ actual object P2pStreamingEngine {
             )
 
         private fun extractBundledBinary(platform: DesktopTorrServerPlatform): File? {
-            val resource = "/torrserver/${platform.resourceDir}/${platform.binaryName}"
-            val input = P2pStreamingEngine::class.java.getResourceAsStream(resource) ?: return null
             val dir = DesktopStorage.rootDir.resolve("torrserver/bin/${platform.resourceDir}").toFile().apply { mkdirs() }
             val file = File(dir, platform.binaryName)
+            if (file.exists() && file.length() > 1024L) {
+                file.setExecutable(true)
+                return file
+            }
+            val resource = "/torrserver/${platform.resourceDir}/${platform.binaryName}"
+            val input = P2pStreamingEngine::class.java.getResourceAsStream(resource) ?: return null
             val tempFile = File(dir, "${platform.binaryName}.tmp")
             input.use { source ->
                 tempFile.outputStream().use { target -> source.copyTo(target) }
@@ -659,10 +699,8 @@ actual object P2pStreamingEngine {
             }
         }
 
-        fun getStreamUrl(magnetLink: String, fileIdx: Int): String {
-            val encodedLink = URLEncoder.encode(magnetLink, Charsets.UTF_8.name())
-            return "$baseUrl/stream?link=$encodedLink&index=$fileIdx&play"
-        }
+        fun getStreamUrl(torrentHash: String, fileIdx: Int): String =
+            buildTorrServerStreamUrl(baseUrl, torrentHash, fileIdx)
 
         private fun postJson(path: String, body: JsonObject): JsonObject? {
             val request = HttpRequest.newBuilder(URI.create("$baseUrl$path"))
@@ -684,6 +722,8 @@ actual object P2pStreamingEngine {
     private fun Long.fractionOf(total: Long): Float =
         if (total > 0L) (toDouble() / total.toDouble()).toFloat().coerceIn(0f, 1f) else 0f
 }
+
+internal data class VerifiedTorrentFile(val id: Int, val path: String, val length: Long)
 
 private fun JsonObject.stringOrNull(key: String): String? =
     this[key]?.jsonPrimitive?.contentOrNull

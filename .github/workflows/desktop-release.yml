@@ -386,7 +386,7 @@ jobs:
       - name: Fetch Windows runtime
         shell: bash
         run: |
-          git lfs pull --include="composeApp/src/desktopMain/native/windows/runtime/**,composeApp/src/desktopMain/resources/torrserver/windows-amd64/TorrServer.exe" --exclude=""
+          git lfs pull --include="composeApp/src/desktopMain/native/windows/runtime/**,composeApp/src/desktopMain/resources/torrserver/windows-amd64/TorrServer.exe,composeApp/src/desktopMain/resources/verification/windows/**" --exclude=""
           runtime_path="composeApp/src/desktopMain/native/windows/runtime/libmpv-2.dll"
           if [[ ! -f "${runtime_path}" ]]; then
             echo "The bundled Windows libmpv runtime is missing." >&2

@@ -247,7 +247,7 @@ private fun StreamNameWithInstantService(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
-            text = stream.streamLabel,
+            text = stream.verifiedDisplayLabel,
             modifier = Modifier.weight(1f, fill = false),
             style = nameStyle,
             color = MaterialTheme.colorScheme.onSurface,

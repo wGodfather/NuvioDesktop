@@ -1,7 +1,15 @@
 package com.nuvio.app.features.downloads
 
+import com.nuvio.app.core.build.AppFeaturePolicy
+import com.nuvio.app.features.p2p.P2pSettingsRepository
 import com.nuvio.app.features.player.addonSubtitleRequests
 import com.nuvio.app.features.streams.StreamItem
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -16,6 +24,7 @@ import org.jetbrains.compose.resources.getString
 
 object DownloadsRepository {
     private const val MaxDownloadAttempts = 3
+    private val repositoryScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     private val _uiState = MutableStateFlow(DownloadsUiState())
     val uiState: StateFlow<DownloadsUiState> = _uiState.asStateFlow()
@@ -120,12 +129,27 @@ object DownloadsRepository {
     ): DownloadEnqueueResult {
         ensureLoaded()
 
-        val sourceUrl = stream.playableDirectUrl
-            ?.trim()
-            ?.takeIf { it.isNotBlank() }
-            ?: return DownloadEnqueueResult.MissingUrl
+        val isTorrent = stream.isTorrentStream || stream.p2pInfoHash != null
+        val directUrl = stream.playableDirectUrl?.trim()?.takeIf { it.isNotBlank() }
+        val isHls = !isTorrent && ((directUrl ?: stream.url).orEmpty().contains(".m3u8", ignoreCase = true))
 
-        if (!sourceUrl.isSupportedDownloadUrl()) {
+        val sourceUrl = if (isTorrent) {
+            if (!AppFeaturePolicy.p2pEnabled) {
+                return DownloadEnqueueResult.UnsupportedFormat
+            }
+            P2pSettingsRepository.ensureLoaded()
+            if (!P2pSettingsRepository.uiState.value.p2pEnabled) {
+                P2pSettingsRepository.setP2pEnabled(true)
+            }
+            stream.torrentMagnetUri
+                ?: stream.p2pInfoHash?.let { "magnet:?xt=urn:btih:$it" }
+                ?: directUrl
+                ?: return DownloadEnqueueResult.MissingUrl
+        } else {
+            directUrl ?: return DownloadEnqueueResult.MissingUrl
+        }
+
+        if (!isTorrent && !sourceUrl.isSupportedDownloadUrl()) {
             return DownloadEnqueueResult.UnsupportedFormat
         }
 
@@ -156,6 +180,9 @@ object DownloadsRepository {
             fallbackTitle = stream.streamLabel,
             sourceUrl = sourceUrl,
             downloadId = downloadId,
+            isTorrent = isTorrent,
+            isHls = isHls,
+            filenameHint = stream.behaviorHints.filename,
         )
 
         val item = DownloadItem(
@@ -189,6 +216,11 @@ object DownloadsRepository {
             errorMessage = null,
             createdAtEpochMs = now,
             updatedAtEpochMs = now,
+            p2pInfoHash = if (isTorrent) stream.p2pInfoHash else null,
+            p2pFileIdx = if (isTorrent) stream.p2pFileIdx else null,
+            p2pTrackers = if (isTorrent) stream.p2pTrackers else emptyList(),
+            p2pFilename = if (isTorrent) stream.behaviorHints.filename else null,
+            isHlsDownload = isHls,
         )
 
         currentItems.add(0, item)
@@ -300,7 +332,10 @@ object DownloadsRepository {
     }
 
     private fun startDownload(item: DownloadItem, attempt: Int = 1) {
-        val request = DownloadPlatformRequest(item)
+        val request = DownloadPlatformRequest(
+            item = item,
+            refreshHlsSource = if (item.isHlsDownload) ({ refreshHlsRequest(item) }) else null,
+        )
 
         val handle = DownloadsPlatformDownloader.start(
             request = request,
@@ -335,6 +370,11 @@ object DownloadsRepository {
                         updatedAtEpochMs = DownloadsClock.nowEpochMs(),
                     )
                 }
+                repositoryScope.launch {
+                    runCatching {
+                        DownloadSubtitles.prepare(item, localFileUri)
+                    }
+                }
             },
             onFailure = onFailure@ { message ->
                 activeHandles.remove(item.id)
@@ -365,6 +405,22 @@ object DownloadsRepository {
         )
 
         activeHandles[item.id] = handle
+    }
+
+    private suspend fun refreshHlsRequest(item: DownloadItem): DownloadPlatformRequest? {
+        val stream = refreshPluginDownloadStream(item) ?: return null
+        currentCoroutineContext().ensureActive()
+        val current = _uiState.value.items.firstOrNull { it.id == item.id } ?: return null
+        if (current.status != DownloadStatus.Downloading || current.sourceUrl != item.sourceUrl) return null
+        val refreshed = current.copy(
+            sourceUrl = stream.playableDirectUrl ?: return null,
+            sourceHeaders = sanitizeRequestHeaders(stream.behaviorHints.proxyHeaders?.request),
+            sourceSubtitles = stream.externalSubtitles,
+            updatedAtEpochMs = DownloadsClock.nowEpochMs(),
+        )
+        replaceItem(refreshed)
+        persist()
+        return DownloadPlatformRequest(refreshed)
     }
 
     private fun mutateItem(downloadId: String, transform: (DownloadItem) -> DownloadItem) {
@@ -515,6 +571,9 @@ private fun buildFileName(
     fallbackTitle: String,
     sourceUrl: String,
     downloadId: String,
+    isTorrent: Boolean = false,
+    isHls: Boolean = false,
+    filenameHint: String? = null,
 ): String {
     val baseTitle = if (seasonNumber != null && episodeNumber != null) {
         buildString {
@@ -532,7 +591,19 @@ private fun buildFileName(
         title.ifBlank { fallbackTitle }
     }
 
-    val extension = sourceUrl.fileExtensionFromUrl()
+    val hintExt = filenameHint
+        ?.takeIf { it.contains('.') }
+        ?.substringAfterLast('.')
+        ?.lowercase()
+        ?.trim()
+        ?.takeIf { it.length in 2..5 && it.all { c -> c.isLetterOrDigit() } }
+
+    val extension = when {
+        hintExt != null -> hintExt
+        isTorrent -> "mkv"
+        isHls -> "mp4"
+        else -> sourceUrl.fileExtensionFromUrl()
+    }
     return buildString {
         append(baseTitle.sanitizeFileName().ifBlank { "download" }.take(92))
         append('_')
@@ -560,9 +631,7 @@ private fun String.fileExtensionFromUrl(): String {
 
 private fun String.isSupportedDownloadUrl(): Boolean {
     val normalized = trim().lowercase()
-    if (normalized.startsWith("magnet:")) return false
-    if (normalized.endsWith(".m3u8") || normalized.contains(".m3u8?")) return false
+    if (normalized.startsWith("magnet:") || normalized.startsWith("torrent://")) return true
     if (normalized.endsWith(".mpd") || normalized.contains(".mpd?")) return false
-    if (normalized.endsWith(".torrent") || normalized.contains(".torrent?")) return false
     return normalized.startsWith("http://") || normalized.startsWith("https://")
 }

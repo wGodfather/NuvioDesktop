@@ -28,8 +28,13 @@ import kotlinx.coroutines.flow.update
 import nuvio.composeapp.generated.resources.*
 import org.jetbrains.compose.resources.getString
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.async
 
 object StreamsRepository {
+    private suspend fun verifyStreams(streams: List<StreamItem>, context: StreamVerificationContext): List<StreamItem> = coroutineScope {
+        streams.map { stream -> async { StreamSourceVerifier.verify(stream, context) } }.mapNotNull { it.await() }
+    }
     private val log = Logger.withTag("StreamsRepo")
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val _uiState = MutableStateFlow(StreamsUiState())
@@ -144,6 +149,20 @@ object StreamsRepository {
                 streams = embeddedStreams,
                 isLoading = false,
             )
+            if (StreamSourceVerifier.enabled) {
+                _uiState.value = StreamsUiState(requestToken = requestToken, groups = listOf(group.copy(streams = emptyList(), isLoading = true)), isAnyLoading = true)
+                activeJob = scope.launch {
+                    val meta = MetaDetailsRepository.uiState.value.meta
+                    val context = StreamSourceVerifier.prepareContext(StreamVerificationContext(type, videoId, listOfNotNull(meta?.name),
+                        meta?.releaseInfo?.take(4)?.toIntOrNull(), season, episode,
+                        meta?.runtime?.let { Regex("[0-9]+").find(it)?.value?.toIntOrNull() }))
+                    val verifiedGroup = group.copy(streams = verifyStreams(embeddedStreams, context).sortedBySizeAndQuality())
+                    _uiState.update { current -> if (current.requestToken == requestToken) current.copy(
+                        groups = listOf(verifiedGroup), isAnyLoading = false, emptyStateReason = listOf(verifiedGroup).toEmptyStateReason(false),
+                    ) else current }
+                }
+                return
+            }
             val presentedGroup = StreamBadgePresentation.apply(
                 groups = listOf(group),
                 rules = streamBadgeRules,
@@ -233,6 +252,14 @@ object StreamsRepository {
         )
 
         activeJob = scope.launch {
+            val meta = MetaDetailsRepository.uiState.value.meta?.takeIf {
+                it.id == videoId || it.id == parentMetaId || it.imdbId == videoId.substringBefore(':')
+            }
+            val verificationContext = StreamSourceVerifier.prepareContext(StreamVerificationContext(
+                type = type, videoId = videoId, titles = listOfNotNull(meta?.name),
+                year = meta?.releaseInfo?.take(4)?.toIntOrNull(), season = season, episode = episode,
+                runtimeMinutes = meta?.runtime?.let { Regex("[0-9]+").find(it)?.value?.toIntOrNull() },
+            ))
             val completions = Channel<StreamLoadCompletion>(capacity = Channel.BUFFERED)
             val pluginRemainingByAddonId = pluginProviderGroups
                 .associate { it.addonId to it.scrapers.size }
@@ -430,12 +457,13 @@ object StreamsRepository {
                             url = url,
                             forceRefresh = forceRefresh,
                         )
-                        StreamParser.parse(
+                        val streams = StreamParser.parse(
                             payload = payload,
                             addonName = displayName,
                             addonId = addon.addonId,
                             addonLogo = addon.manifest.logoUrl,
                         )
+                        if (!StreamSourceVerifier.enabled) streams else verifyStreams(streams, verificationContext).sortedBySizeAndQuality()
                     }.fold(
                         onSuccess = { streams ->
                             log.d { "Got ${streams.size} streams from ${displayName}" }
@@ -477,16 +505,22 @@ object StreamsRepository {
                             episode = episode,
                         ).fold(
                             onSuccess = { results ->
+                                val streams = results.map { result -> result.toStreamItem(
+                                    scraper = scraper, addonName = providerGroup.addonName, addonId = providerGroup.addonId,
+                                    includeScraperNameInSubtitle = includeScraperNameInSubtitle,
+                                ) }.sortedBySizeAndQuality()
+                                if (StreamSourceVerifier.enabled) coroutineScope {
+                                    streams.forEach { stream -> launch {
+                                        StreamSourceVerifier.verify(stream, verificationContext)?.let { verified ->
+                                            publishCompletion(StreamLoadCompletion.PluginScraper(
+                                                addonId = providerGroup.addonId, streams = listOf(verified), error = null, isFinal = false,
+                                            ))
+                                        }
+                                    } }
+                                }
                                 StreamLoadCompletion.PluginScraper(
                                     addonId = providerGroup.addonId,
-                                    streams = results.map { result ->
-                                        result.toStreamItem(
-                                            scraper = scraper,
-                                            addonName = providerGroup.addonName,
-                                            addonId = providerGroup.addonId,
-                                            includeScraperNameInSubtitle = includeScraperNameInSubtitle,
-                                        )
-                                    },
+                                    streams = if (StreamSourceVerifier.enabled) emptyList() else streams,
                                     error = null,
                                 )
                             },
@@ -503,15 +537,18 @@ object StreamsRepository {
                 }
             }
 
-            repeat(totalTasks) {
+            var completedTasks = 0
+            while (completedTasks < totalTasks) {
                 when (val completion = completions.receive()) {
                     is StreamLoadCompletion.Addon -> {
+                        completedTasks++
                         val result = completion.group
                         publishAddonGroupAfterCacheCheck(result)
                     }
 
                     is StreamLoadCompletion.PluginScraper -> {
-                        val remaining = (pluginRemainingByAddonId[completion.addonId] ?: 1) - 1
+                        if (completion.isFinal) completedTasks++
+                        val remaining = (pluginRemainingByAddonId[completion.addonId] ?: 1) - if (completion.isFinal) 1 else 0
                         pluginRemainingByAddonId[completion.addonId] = remaining.coerceAtLeast(0)
                         if (!completion.error.isNullOrBlank() && pluginFirstErrorByAddonId[completion.addonId].isNullOrBlank()) {
                             pluginFirstErrorByAddonId[completion.addonId] = completion.error

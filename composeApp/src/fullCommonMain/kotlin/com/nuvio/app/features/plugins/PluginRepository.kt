@@ -355,13 +355,14 @@ actual object PluginRepository {
         mediaType: String,
         season: Int?,
         episode: Int?,
+        respectSearchPause: Boolean,
     ): Result<List<PluginRuntimeResult>> = executeScraperInternal(
         scraper = scraper,
         tmdbId = tmdbId,
         mediaType = mediaType,
         season = season,
         episode = episode,
-        respectSearchPause = true,
+        respectSearchPause = respectSearchPause,
     )
 
     private suspend fun executeScraperInternal(

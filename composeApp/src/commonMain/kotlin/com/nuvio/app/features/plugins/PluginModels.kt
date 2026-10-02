@@ -85,6 +85,9 @@ data class PluginRuntimeResult(
     val seeders: Int? = null,
     val peers: Int? = null,
     val infoHash: String? = null,
+    val fileIdx: Int? = null,
+    val filename: String? = null,
+    val videoSize: Long? = null,
     val headers: Map<String, String>? = null,
     val subtitles: List<PluginSubtitleResult>? = null,
 )

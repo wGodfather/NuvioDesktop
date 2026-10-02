@@ -2,10 +2,17 @@ package com.nuvio.app.features.downloads
 
 internal data class DownloadPlatformRequest(
     val item: DownloadItem,
+    val refreshHlsSource: (suspend () -> DownloadPlatformRequest?)? = null,
 ) {
     val sourceUrl: String get() = item.sourceUrl
     val sourceHeaders: Map<String, String> get() = item.sourceHeaders
     val destinationFileName: String get() = item.fileName
+    val isP2pDownload: Boolean get() = item.isP2pDownload
+    val isHlsDownload: Boolean get() = item.isHlsDownload
+    val p2pInfoHash: String? get() = item.p2pInfoHash
+    val p2pFileIdx: Int? get() = item.p2pFileIdx
+    val p2pTrackers: List<String> get() = item.p2pTrackers
+    val p2pFilename: String? get() = item.p2pFilename
 }
 
 internal interface DownloadsTaskHandle {

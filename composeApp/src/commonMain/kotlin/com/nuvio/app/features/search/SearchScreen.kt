@@ -433,7 +433,7 @@ private fun SearchEmptyStateCard(
 ) {
     if (
         reason == SearchEmptyStateReason.RequestFailed &&
-        (networkCondition == NetworkCondition.NoInternet || networkCondition == NetworkCondition.ServersUnreachable)
+        networkCondition == NetworkCondition.NoInternet
     ) {
         NuvioNetworkOfflineCard(
             condition = networkCondition,

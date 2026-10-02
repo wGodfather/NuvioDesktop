@@ -9,6 +9,7 @@ import nuvio.composeapp.generated.resources.downloads_enqueue_missing_url
 import nuvio.composeapp.generated.resources.downloads_enqueue_replaced
 import nuvio.composeapp.generated.resources.downloads_enqueue_started
 import nuvio.composeapp.generated.resources.downloads_enqueue_unsupported_format
+import nuvio.composeapp.generated.resources.settings_p2p_subtitle
 import org.jetbrains.compose.resources.getString
 
 @Serializable
@@ -51,12 +52,20 @@ data class DownloadItem(
     val errorMessage: String? = null,
     val createdAtEpochMs: Long,
     val updatedAtEpochMs: Long,
+    val p2pInfoHash: String? = null,
+    val p2pFileIdx: Int? = null,
+    val p2pTrackers: List<String> = emptyList(),
+    val p2pFilename: String? = null,
+    val isHlsDownload: Boolean = false,
 ) {
     val isEpisode: Boolean
         get() = seasonNumber != null && episodeNumber != null
 
     val isPlayable: Boolean
         get() = status == DownloadStatus.Completed && !localFileUri.isNullOrBlank()
+
+    val isP2pDownload: Boolean
+        get() = !p2pInfoHash.isNullOrBlank()
 
     val displaySubtitle: String
         get() = episodeTitle.orEmpty()
@@ -91,7 +100,8 @@ enum class DownloadEnqueueResult {
     Started,
     Replaced,
     MissingUrl,
-    UnsupportedFormat;
+    UnsupportedFormat,
+    P2pNotEnabled;
 
     fun toastMessage(): String = runBlocking {
         when (this@DownloadEnqueueResult) {
@@ -99,6 +109,7 @@ enum class DownloadEnqueueResult {
             Replaced -> getString(Res.string.downloads_enqueue_replaced)
             MissingUrl -> getString(Res.string.downloads_enqueue_missing_url)
             UnsupportedFormat -> getString(Res.string.downloads_enqueue_unsupported_format)
+            P2pNotEnabled -> getString(Res.string.settings_p2p_subtitle)
         }
     }
 }

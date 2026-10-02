@@ -456,9 +456,6 @@ object SearchRepository {
             it.patternForScreen(com.nuvio.app.core.poster.CustomPosterScreen.SEARCH)
         }
         val items = page.items.withCustomPosterUrls(posterPattern)
-        require(items.isNotEmpty()) {
-            getString(Res.string.search_error_no_results_for_catalog, catalogName)
-        }
 
         return HomeCatalogSection(
             key = "${manifest.id}:search:$type:$catalogId:${query.lowercase()}",
@@ -470,6 +467,7 @@ object SearchRepository {
                 contentType = type,
                 catalogId = catalogId,
                 supportsPagination = supportsPagination,
+                search = query,
             ),
             items = items,
             availableItemCount = page.rawItemCount,
@@ -598,7 +596,7 @@ private data class IndexedSearchResult(
 )
 
 private fun Array<IndexedSearchResult?>.orderedSections(): List<HomeCatalogSection> =
-    mapNotNull { result -> result?.section }
+    mapNotNull { result -> result?.section?.takeIf { it.items.isNotEmpty() } }
 
 private fun CatalogPage.withUnreleasedFilter(): CatalogPage {
     if (!HomeCatalogSettingsRepository.snapshot().hideUnreleasedContent) return this

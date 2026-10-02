@@ -39,5 +39,6 @@ expect object PluginRepository {
         mediaType: String,
         season: Int?,
         episode: Int?,
+        respectSearchPause: Boolean = true,
     ): Result<List<PluginRuntimeResult>>
 }

@@ -349,7 +349,10 @@ fun StreamsScreen(
             showDownloadAction = AppFeaturePolicy.downloadsEnabled,
             onDismiss = { streamActionsTarget = null },
             onCopyLink = { stream ->
-                val directUrl = stream.playableDirectUrl ?: stream.externalOpenUrl
+                val directUrl = stream.playableDirectUrl
+                    ?: stream.torrentMagnetUri
+                    ?: stream.p2pInfoHash?.let { "magnet:?xt=urn:btih:$it" }
+                    ?: stream.externalOpenUrl
                 if (!directUrl.isNullOrBlank()) {
                     clipboardManager.setText(AnnotatedString(directUrl))
                     NuvioToastController.show(streamLinkCopiedText)
@@ -903,12 +906,17 @@ internal fun StreamList(
 }
 
 private fun buildStreamSectionRenderModels(groups: List<AddonStreamGroup>): List<StreamSectionRenderModel> =
-    groups
+    (if (isDesktop && groups.isNotEmpty()) listOf(AddonStreamGroup(
+        addonName = groups.first().addonName,
+        addonId = "size-sorted-sources",
+        streams = groups.flatMap { it.streams }.sortedBySizeAndQuality(),
+        isLoading = groups.any { it.isLoading },
+    )) else groups)
         .withDuplicateSafeLazyKeys { group -> streamSectionRenderKey(group) }
         .map { keyedGroup ->
             val group = keyedGroup.value
             val sectionKey = keyedGroup.lazyKey.toString()
-            val streamsBySource = group.streams.groupBy(::streamSourceName)
+            val streamsBySource = if (isDesktop) mapOf(group.addonName to group.streams) else group.streams.groupBy(::streamSourceName)
             val sortedSources = streamsBySource.keys.sortedBy { it.lowercase() }
 
             StreamSectionRenderModel(
@@ -1007,12 +1015,12 @@ private fun LazyListScope.streamSection(
                     }
                 },
                 onLongClick = {
-                    if (stream.playableDirectUrl != null || stream.shouldOpenExternally || stream.isAddonDebridCandidate) {
+                    if (stream.playableDirectUrl != null || stream.shouldOpenExternally || stream.isAddonDebridCandidate || stream.isTorrentStream || stream.p2pInfoHash != null) {
                         onStreamLongPress(stream)
                     }
                 },
                 onSecondaryClick = { position ->
-                    if (stream.playableDirectUrl != null || stream.shouldOpenExternally || stream.isAddonDebridCandidate) {
+                    if (stream.playableDirectUrl != null || stream.shouldOpenExternally || stream.isAddonDebridCandidate || stream.isTorrentStream || stream.p2pInfoHash != null) {
                         onStreamSecondaryClick(stream, position)
                     }
                 },

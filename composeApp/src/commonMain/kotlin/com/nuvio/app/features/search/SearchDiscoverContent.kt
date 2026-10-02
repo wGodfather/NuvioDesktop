@@ -203,7 +203,7 @@ private fun DiscoverEmptyStateCard(
 ) {
     if (
         reason == DiscoverEmptyStateReason.RequestFailed &&
-        (networkCondition == NetworkCondition.NoInternet || networkCondition == NetworkCondition.ServersUnreachable)
+        networkCondition == NetworkCondition.NoInternet
     ) {
         NuvioNetworkOfflineCard(
             condition = networkCondition,

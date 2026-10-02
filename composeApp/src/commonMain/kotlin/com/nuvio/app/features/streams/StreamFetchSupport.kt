@@ -32,6 +32,7 @@ internal sealed interface StreamLoadCompletion {
         val addonId: String,
         val streams: List<StreamItem>,
         val error: String?,
+        val isFinal: Boolean = true,
     ) : StreamLoadCompletion
 }
 
@@ -111,19 +112,19 @@ internal fun PluginRuntimeResult.toStreamItem(
         name = name ?: title,
         description = subtitleParts.joinToString(" • ").ifBlank { null },
         url = url,
+        title = title,
         infoHash = infoHash,
+        fileIdx = fileIdx,
         sourceName = scraper.name,
         addonName = addonName,
         addonId = addonId,
         streamType = normalizeStreamType(type),
-        behaviorHints = if (requestHeaders.isEmpty()) {
-            StreamBehaviorHints()
-        } else {
-            StreamBehaviorHints(
-                notWebReady = true,
-                proxyHeaders = StreamProxyHeaders(request = requestHeaders),
-            )
-        },
+        behaviorHints = StreamBehaviorHints(
+            videoSize = videoSize ?: parseStreamSizeBytes(size),
+            filename = filename,
+            notWebReady = requestHeaders.isNotEmpty(),
+            proxyHeaders = requestHeaders.takeIf { it.isNotEmpty() }?.let { StreamProxyHeaders(request = it) },
+        ),
         externalSubtitles = subtitles?.map {
             StreamSubtitle(
                 url = it.url,
@@ -136,13 +137,7 @@ internal fun PluginRuntimeResult.toStreamItem(
 }
 
 internal fun List<StreamItem>.sortedForGroupedDisplay(): List<StreamItem> =
-    sortedWith(
-        compareBy<StreamItem>(
-            { it.sourceName.orEmpty().lowercase() },
-            { it.streamLabel.lowercase() },
-            { it.streamSubtitle.orEmpty().lowercase() },
-        ),
-    )
+    sortedBySizeAndQuality()
 
 private fun String.fallbackRepositoryLabel(): String {
     val withoutQuery = substringBefore("?")

@@ -26,6 +26,10 @@ Expect breaking changes with every update. Features, settings, stored data, and 
 
 ## About
 
+This fork contains the Turkish catalog, verified-source ordering, and download fixes.
+See [Türkçe fork ve sürüm rehberi](FORK_TR.md). Windows updates are distributed
+from [wGodfather/NuvioDesktop Releases](https://github.com/wGodfather/NuvioDesktop/releases).
+
 Nuvio Desktop is a media client for browsing metadata, managing collections and watch progress, downloading media, and playing streams from user-installed extensions or user-provided sources.
 
 ## Installation
