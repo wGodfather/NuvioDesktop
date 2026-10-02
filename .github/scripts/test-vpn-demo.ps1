@@ -25,6 +25,21 @@ function Require([bool]$condition, [string]$name) {
     if (-not $condition) { throw "Failed: $name" }
     Write-Output "PASS $name"
 }
+function Probe([Net.IPAddress]$source = $null) {
+    $client = [Net.Sockets.TcpClient]::new([Net.Sockets.AddressFamily]::InterNetwork)
+    try {
+        if ($null -ne $source) { $client.Client.Bind([Net.IPEndPoint]::new($source, 0)) }
+        $task = $client.ConnectAsync($probeAddress, 443)
+        return $task.Wait(3000) -and $client.Connected
+    } catch { return $false } finally { $client.Dispose() }
+}
+$probeAddress = [Net.Dns]::GetHostAddresses('github.com') | Where-Object AddressFamily -eq InterNetwork | Select-Object -First 1
+$baseline = [Net.Sockets.TcpClient]::new()
+try {
+    if (-not $baseline.ConnectAsync($probeAddress, 443).Wait(5000)) { throw 'Baseline probe timed out.' }
+    $physicalAddress = $baseline.Client.LocalEndPoint.Address
+} finally { $baseline.Dispose() }
+Require (Probe $physicalAddress) 'physical IPv4 baseline'
 
 # Protocol documented by WireGuard's example/example.c. Only public key is sent.
 # The public demonstration service is used for handshake tests, never for user traffic.
@@ -58,6 +73,7 @@ try {
     $encrypted = [IO.File]::ReadAllBytes((Join-Path $env:ProgramFiles 'NuvioVpn/State/NuvioVpn.conf.dpapi'))
     Require (-not [Text.Encoding]::UTF8.GetString($encrypted).Contains($privateKey)) 'SYSTEM-encrypted profile at rest'
     Require ((Request 'arm') -eq "STATE`tBlocked`t1`t0") 'guard armed before tunnel'
+    Require (-not (Probe $physicalAddress)) 'physical IPv4 blocked before tunnel'
     $null = Request 'connect'
     $deadline = [DateTime]::UtcNow.AddSeconds(60)
     do {
@@ -66,11 +82,15 @@ try {
         Start-Sleep -Seconds 2
     } while ([DateTime]::UtcNow -lt $deadline)
     Require ($state -eq "STATE`tConnected`t1`t1") 'real WireGuard peer handshake and verified filters'
+    Require (-not (Probe $physicalAddress)) 'physical IPv4 bypass blocked with connected tunnel'
     Require ((Request 'hold') -eq "STATE`tBlocked`t1`t0") 'disconnect retains the guard'
+    Require (-not (Probe $physicalAddress)) 'physical IPv4 remains blocked after disconnect'
     Restart-Service NuvioVpnControl
     Start-Sleep -Seconds 2
     Require ((Request 'status') -eq "STATE`tBlocked`t1`t0") 'service restart retains guard and encrypted profile'
+    Require (-not (Probe $physicalAddress)) 'physical IPv4 remains blocked after service restart'
     Require ((Request 'off') -eq "STATE`tOff`t1`t0") 'explicit disable releases guard'
+    Require (Probe $physicalAddress) 'explicit disable restores physical IPv4'
     Require ((Request 'delete') -eq "STATE`tOff`t0`t0") 'profile deletion'
 } finally {
     & $helper uninstall
