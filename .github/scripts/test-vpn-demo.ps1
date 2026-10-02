@@ -5,12 +5,17 @@ $runtime = Join-Path $PSScriptRoot '../../composeApp/build/native/vpn'
 $helper = (Resolve-Path (Join-Path $runtime 'NuvioVpn.exe')).Path
 $wg = (Resolve-Path (Join-Path $runtime 'wg.exe')).Path
 function Request([string]$command) {
-    $start = [Diagnostics.ProcessStartInfo]::new($helper, 'client')
+    $start = [Diagnostics.ProcessStartInfo]::new((Join-Path $env:ProgramFiles 'NuvioVpn/NuvioVpn.exe'), 'client')
     $start.UseShellExecute = $false
     $start.CreateNoWindow = $true
     $start.RedirectStandardInput = $true
     $start.RedirectStandardOutput = $true
     $start.RedirectStandardError = $true
+    $start.UserName = $testUser.Name
+    $start.Domain = $env:COMPUTERNAME
+    $start.Password = $testPassword
+    $start.LoadUserProfile = $true
+    $start.WorkingDirectory = Join-Path $env:ProgramFiles 'NuvioVpn'
     $process = [Diagnostics.Process]::Start($start)
     try {
         $process.StandardInput.WriteLine($command)
@@ -63,9 +68,11 @@ try {
     if ($answer.Count -ne 4 -or $answer[0] -ne 'OK') { throw 'Demo response invalid.' }
 } finally { $socket.Dispose() }
 $profile = "[Interface]`nPrivateKey = $privateKey`nAddress = $($answer[3])/32`nDNS = 1.1.1.1`n[Peer]`nPublicKey = $($answer[1])`nAllowedIPs = 0.0.0.0/0`nEndpoint = $($endpoint):$($answer[2])`n"
-$sid = [Security.Principal.WindowsIdentity]::GetCurrent().User.Value
+$testPassword = ConvertTo-SecureString (([Guid]::NewGuid().ToString('N')) + 'Aa!7') -AsPlainText -Force
+$testUser = New-LocalUser -Name ('NuvioVpn' + [Guid]::NewGuid().ToString('N').Substring(0,8)) -Password $testPassword
 try {
-    & $helper install $sid
+    Add-LocalGroupMember -SID 'S-1-5-32-545' -Member $testUser
+    & $helper install $testUser.SID.Value
     Require ($LASTEXITCODE -eq 0) 'broker installation'
     Require ((Request 'status') -eq "STATE`tOff`t0`t0") 'default off without profile'
     $encoded = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($profile))
@@ -95,6 +102,9 @@ try {
 } finally {
     & $helper uninstall
     $privateKey = $null; $profile = $null; $encoded = $null
-    if ($LASTEXITCODE -ne 0) { throw 'Runner VPN cleanup failed.' }
+    $cleanupExit = $LASTEXITCODE
+    Remove-LocalUser -SID $testUser.SID
+    $testPassword.Dispose()
+    if ($cleanupExit -ne 0) { throw 'Runner VPN cleanup failed.' }
 }
 Write-Output 'Demo integration passed. Provider throughput, external-IP and full DNS/IPv6 leak tests remain release gates.'

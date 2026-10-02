@@ -87,24 +87,16 @@ namespace NuvioVpn {
             if (!GetNamedPipeServerProcessId(pipe.SafePipeHandle, out pid)) throw new VpnError("UNTRUSTED_SERVICE");
             IntPtr process = OpenProcess(0x1000, false, pid);
             if (process == IntPtr.Zero) throw new VpnError("UNTRUSTED_SERVICE");
-            IntPtr token = IntPtr.Zero;
             try {
                 var image = new StringBuilder(32768); int length = image.Capacity;
                 if (!QueryFullProcessImageName(process, 0, image, ref length) ||
                     !string.Equals(image.ToString(), Path.Combine(Root, "NuvioVpn.exe"), StringComparison.OrdinalIgnoreCase) ||
-                    !OpenProcessToken(process, 8, out token)) throw new VpnError("UNTRUSTED_SERVICE");
-                using (var identity = new WindowsIdentity(token)) {
-                    if (identity.User.Value != "S-1-5-18") throw new VpnError("UNTRUSTED_SERVICE");
-                }
-            } finally {
-                if (token != IntPtr.Zero) CloseHandle(token);
-                CloseHandle(process);
-            }
+                    !NativeScm.IsBrokerProcess(pid)) throw new VpnError("UNTRUSTED_SERVICE");
+            } finally { CloseHandle(process); }
         }
         [DllImport("kernel32.dll", SetLastError = true)] static extern bool GetNamedPipeServerProcessId(Microsoft.Win32.SafeHandles.SafePipeHandle pipe, out uint pid);
         [DllImport("kernel32.dll", SetLastError = true)] static extern IntPtr OpenProcess(uint access, bool inherit, uint pid);
         [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)] static extern bool QueryFullProcessImageName(IntPtr process, uint flags, StringBuilder path, ref int length);
-        [DllImport("advapi32.dll", SetLastError = true)] static extern bool OpenProcessToken(IntPtr process, uint access, out IntPtr token);
         [DllImport("kernel32.dll")] static extern bool CloseHandle(IntPtr handle);
         static void Install(SecurityIdentifier owner) {
             if (IntPtr.Size != 8) throw new VpnError("UNSUPPORTED_ARCHITECTURE");
@@ -387,6 +379,30 @@ namespace NuvioVpn {
 
     sealed class NativeScm : IDisposable {
         IntPtr handle;
+        internal static bool IsBrokerProcess(uint pid) {
+            // SCM read access works for standard users; querying a SYSTEM process token does not.
+            IntPtr scm = OpenSCManager(null, null, 1);
+            if (scm == IntPtr.Zero) return false;
+            IntPtr service = IntPtr.Zero;
+            try {
+                service = OpenService(scm, Program.ServiceName, 5); // QUERY_CONFIG | QUERY_STATUS
+                if (service == IntPtr.Zero) return false;
+                using (var arena = new Arena()) {
+                    uint needed; IntPtr status = arena.Alloc(36);
+                    if (!QueryServiceStatusEx(service, 0, status, 36, out needed) || Marshal.ReadInt32(status, 4) != 4 ||
+                        unchecked((uint)Marshal.ReadInt32(status, 28)) != pid) return false;
+                    QueryServiceConfig(service, IntPtr.Zero, 0, out needed);
+                    if (needed < 64 || needed > 8192) return false;
+                    IntPtr config = arena.Alloc((int)needed);
+                    if (!QueryServiceConfig(service, config, needed, out needed)) return false;
+                    string account = Marshal.PtrToStringUni(Marshal.ReadIntPtr(config, 48));
+                    return string.Equals(account, "LocalSystem", StringComparison.OrdinalIgnoreCase);
+                }
+            } finally {
+                if (service != IntPtr.Zero) CloseServiceHandle(service);
+                CloseServiceHandle(scm);
+            }
+        }
         internal static NativeScm Open() {
             IntPtr h = OpenSCManager(null, null, 0xF003F);
             if (h == IntPtr.Zero) throw new VpnError("ADMIN_REQUIRED"); return new NativeScm { handle = h };
@@ -421,6 +437,8 @@ namespace NuvioVpn {
         [DllImport("advapi32.dll", CharSet = CharSet.Unicode, SetLastError = true)] static extern IntPtr CreateService(IntPtr scm, string name, string display,
             uint access, uint type, uint start, uint error, string binary, string group, IntPtr tag, string dependencies, string account, string password);
         [DllImport("advapi32.dll", SetLastError = true)] static extern bool DeleteService(IntPtr service);
+        [DllImport("advapi32.dll", SetLastError = true)] static extern bool QueryServiceStatusEx(IntPtr service, int level, IntPtr status, uint size, out uint needed);
+        [DllImport("advapi32.dll", CharSet = CharSet.Unicode, SetLastError = true)] static extern bool QueryServiceConfig(IntPtr service, IntPtr config, uint size, out uint needed);
         [DllImport("advapi32.dll", CharSet = CharSet.Unicode, SetLastError = true)] static extern bool ChangeServiceConfig2(IntPtr service, uint level, IntPtr config);
         [DllImport("advapi32.dll")] static extern bool CloseServiceHandle(IntPtr handle);
     }
