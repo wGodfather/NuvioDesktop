@@ -24,7 +24,7 @@ namespace NuvioVpn {
         static readonly Guid[] Layers = {
             new Guid("c38d57d1-05a7-4c33-904f-7fbceee60e82"), new Guid("e1cd9fe7-f4b5-4273-96c0-592e487b8650"),
             new Guid("4a72393b-319f-44bc-84c3-ba54dcb3b6b4"), new Guid("a3b42c97-9f04-4672-b87e-cee9c483257f") };
-        static readonly Guid Flags = new Guid("632ce23b-5167-435c-86d7-e903684a8a0c");
+        static readonly Guid Flags = new Guid("632ce23b-5167-435c-86d7-e903684aa80c");
         static readonly Guid Interface = new Guid("4cd62a49-59c3-4969-b7f3-bda5d32890a4");
         static readonly Guid App = new Guid("d78e1e87-8644-4ea5-9437-d809ecefc971");
         static readonly Guid Protocol = new Guid("3971ef2b-623e-4f9a-8cb1-6e79b806b9a7");
