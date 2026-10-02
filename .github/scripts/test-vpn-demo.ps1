@@ -37,7 +37,7 @@ $probeAddress = [Net.Dns]::GetHostAddresses('github.com') | Where-Object Address
 $baseline = [Net.Sockets.TcpClient]::new()
 try {
     if (-not $baseline.ConnectAsync($probeAddress, 443).Wait(5000)) { throw 'Baseline probe timed out.' }
-    $physicalAddress = $baseline.Client.LocalEndPoint.Address
+    $physicalAddress = $baseline.Client.LocalEndPoint.Address.MapToIPv4()
 } finally { $baseline.Dispose() }
 Require (Probe $physicalAddress) 'physical IPv4 baseline'
 
