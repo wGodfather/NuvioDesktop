@@ -13,8 +13,6 @@ import com.nuvio.app.MainActivity
 import com.nuvio.app.features.library.LibraryScreen
 import com.nuvio.app.features.downloads.DownloadsRepository
 import java.io.File
-import nuvio.composeapp.generated.resources.*
-import org.jetbrains.compose.resources.stringResource
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -25,21 +23,16 @@ class LibraryDownloadsUiTest {
     @get:Rule val compose = createAndroidComposeRule<MainActivity>()
 
     @Test fun downloadsLivesBesideSavedAndCloudAndCanBeOpenedWithoutSettings() {
-        var saved = ""
-        var cloud = ""
-        var downloads = ""
-        var empty = ""
-        var active = ""
-        var movies = ""
-        var shows = ""
+        // The disposable CI emulator uses English. Assert the user-visible labels
+        // without exporting the app module's internal generated resource API.
+        val saved = "Saved"
+        val cloud = "Cloud"
+        val downloads = "Downloads"
+        val empty = "No downloads yet"
+        val active = "Active"
+        val movies = "Movies"
+        val shows = "Shows"
         compose.activityRule.scenario.onActivity { activity -> activity.setContent {
-            saved = stringResource(Res.string.library_source_saved)
-            cloud = stringResource(Res.string.library_source_cloud)
-            downloads = stringResource(Res.string.compose_settings_root_downloads_title)
-            empty = stringResource(Res.string.downloads_empty_title)
-            active = stringResource(Res.string.downloads_section_active)
-            movies = stringResource(Res.string.downloads_section_movies)
-            shows = stringResource(Res.string.downloads_section_shows)
             NuvioTheme { LibraryScreen() }
         } }
         compose.waitForIdle()
