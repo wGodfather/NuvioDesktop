@@ -17,8 +17,15 @@ $cleanupHelper = (Resolve-Path 'composeApp/build/native/vpn/NuvioVpn.exe').Path
 function Require([bool]$Result, [string]$Name) { if (-not $Result) { throw "Failed: $Name" }; Write-Output "PASS $Name" }
 function Install([string]$Package, [string]$Mode, [string]$Name, [bool]$ExpectFailure = $false) {
     $log = Join-Path $work ($Name + '.log')
-    $child = Start-Process msiexec.exe -ArgumentList @($Mode, ('"' + $Package + '"'), '/qn', '/norestart', '/l*v', ('"' + $log + '"')) -WindowStyle Hidden -Wait -PassThru
-    if ($ExpectFailure) { Require ($child.ExitCode -eq 1603) 'injected MSI failure' | Out-Host; return $log }
+    $arguments = @($Mode, ('"' + $Package + '"'), '/qn', '/norestart', '/l*v', ('"' + $log + '"'))
+    # Repair normally uses the cached database, which has no injected action.
+    if ($ExpectFailure) { $arguments += @('REINSTALL=ALL', 'REINSTALLMODE=vomus') }
+    $child = Start-Process msiexec.exe -ArgumentList $arguments -WindowStyle Hidden -Wait -PassThru
+    if ($ExpectFailure) {
+        Write-Output "Injected MSI exit code: $($child.ExitCode)" | Out-Host
+        Require ($child.ExitCode -eq 1603) 'injected MSI failure' | Out-Host
+        return $log
+    }
     if ($child.ExitCode -eq 3010) { throw 'Reboot required; lifecycle gate is incomplete.' }
     Require ($child.ExitCode -eq 0) $Name
 }
@@ -65,7 +72,7 @@ try {
     )) { $view = $database.OpenView($sql); $view.Execute(); $view.Close() }
     $database.Commit(); [Runtime.InteropServices.Marshal]::FinalReleaseComObject($database) | Out-Null
     [Runtime.InteropServices.Marshal]::FinalReleaseComObject($installer) | Out-Null
-    $failureLog = Install $failedMsi '/fa' 'forced-rollback' $true
+    $failureLog = Install $failedMsi '/i' 'forced-rollback' $true
     $failureText = Get-Content -LiteralPath $failureLog -Raw
     Require ($failureText -match 'NuvioVpnForcedFailure returned actual error code' -and $failureText -match 'Rollback: NuvioVpnRollback') 'deferred failure invokes rollback'
     Require ((Request 'status') -eq "STATE`tBlocked`t1`t0") 'rollback restores broker and guard'
@@ -80,6 +87,7 @@ try {
 } finally {
     & $cleanupHelper uninstall
     if ($LASTEXITCODE -ne 0) { throw 'Runner recovery failed.' }
+    Clear-DnsClientCache
     $profile = $null; $encoded = $null; $key = $null
 }
 Write-Output 'MSI lifecycle passed. Signing, reboot/sleep and device gates remain separate.'

@@ -8,6 +8,8 @@ on:
       - 'composeApp/src/desktopMain/native/vpn/**'
       - '.github/scripts/build-vpn-runtime.ps1'
       - '.github/scripts/test-vpn-demo.ps1'
+      - '.github/scripts/test-vpn-peer.ps1'
+      - 'tools/vpn-peer/**'
       - '.github/workflows/vpn-windows-tests.yml'
 
 permissions:
@@ -19,6 +21,10 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
+        with:
+          go-version: '1.26.8'
+          cache-dependency-path: tools/vpn-peer/go.sum
       - name: Compile helper, validate profiles and encrypted storage
         shell: pwsh
         run: ./.github/scripts/build-vpn-runtime.ps1
@@ -31,9 +37,14 @@ jobs:
           } finally {
             & ./composeApp/build/native/vpn/NuvioVpn.exe recover
           }
-      - name: Check broker, encrypted profile and real demo peer handshake
+      - name: Check controlled encrypted peer, IPv4, IPv6, DNS and broker lifecycle
         shell: pwsh
-        run: ./.github/scripts/test-vpn-demo.ps1
+        run: ./.github/scripts/test-vpn-peer.ps1
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: vpn-windows-peer-${{ github.sha }}
+          path: build/vpn-peer-qa
       - name: Restore access if any preceding check failed
         if: always()
         shell: pwsh

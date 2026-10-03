@@ -49,6 +49,19 @@ jobs:
           packages: platform-tools
           log-accepted-android-sdk-licenses: false
       - uses: gradle/actions/setup-gradle@v6
+      - uses: actions/setup-go@v6
+        with:
+          go-version: '1.26.8'
+          cache-dependency-path: tools/vpn-peer/go.sum
+      - name: Verify and start ephemeral encrypted peer
+        run: |
+          go -C tools/vpn-peer test -v .
+          go -C tools/vpn-peer build -o ../../vpn-peer .
+          mkdir -p vpn-emulator-report
+          NUVIO_QA_ADVERTISE_IP=10.90.0.1 NUVIO_QA_FIXTURE_OUTPUT=vpn-emulator-report/fixture.json python tools/qa_torrent_seed.py > vpn-emulator-report/seed.log 2>&1 &
+          for attempt in $(seq 1 50); do test -f vpn-emulator-report/fixture.json && break; sleep 0.2; done
+          ./vpn-peer -fixture vpn-emulator-report/fixture.json > vpn-emulator-report/peer.log 2>&1 &
+          for attempt in $(seq 1 50); do curl --silent --fail http://127.0.0.1:8765/ready && break; sleep 0.2; done
       - name: Prepare disposable emulator
         run: |
           touch local.properties
@@ -70,13 +83,14 @@ jobs:
           disk-size: 2048M
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
           disable-animations: true
-          script: ./gradlew :androidApp:connectedFullDebugAndroidTest '-Pandroid.testInstrumentationRunnerArguments.class=com.nuvio.android.VpnAndroidIntegrationTest' -Pandroid.injected.androidTest.leaveApksInstalledAfterRun=true -Pkotlin.compiler.execution.strategy=in-process --max-workers=1 --no-daemon --no-configuration-cache
+          script: ./gradlew :androidApp:connectedFullDebugAndroidTest '-Pandroid.testInstrumentationRunnerArguments.class=com.nuvio.android.VpnAndroidIntegrationTest,com.nuvio.android.VpnPeerIntegrationTest' -Pandroid.injected.androidTest.leaveApksInstalledAfterRun=true -Pkotlin.compiler.execution.strategy=in-process --max-workers=1 --no-daemon --no-configuration-cache
       - name: Preserve results and screenshots
         if: always()
         run: |
           mkdir -p vpn-emulator-report
           adb pull /sdcard/Android/data/com.wgodfather.nuvio.debug/files/vpn-qa vpn-emulator-report/ || true
           adb shell getprop ro.build.fingerprint > vpn-emulator-report/fingerprint.txt || true
+          curl --silent --fail http://127.0.0.1:8765/metrics > vpn-emulator-report/peer-metrics.json || true
           # Avoid logcat/bugreport: native protocol logs can contain endpoint details.
       - uses: actions/upload-artifact@v4
         if: always()
