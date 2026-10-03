@@ -117,6 +117,29 @@ b5bebfe0 test sunucusunda işletim sisteminin boş UDP portunu seçmesi ve gerç
 portu istemciye bildirmesi eklendi; yerel 3 Go testi ve tam Windows peer CI geçti.
 Bu ürün kodu değişikliği değildir.
 
+## Hazırlanan deneysel Release taslağı
+
+[Taslak](https://github.com/wGodfather/NuvioDesktop/releases/tag/untagged-85f63dde6e17ddcab783)
+`0.1.30-alpha` adıyla oluşturuldu; isDraft/isPrerelease doğru, public stable değildir.
+Paket kaynak commit'i tam olarak 23f4316c04fd2fbfef4f42b09518f66d5a9d6bff'tir.
+MSI, dört imzalı ABI APK, SHA-256, Android imza/native envanter, Windows runtime
+manifesti, lisans ZIP'i ve raporlar dahil 23 dosya yüklendi. Sahip hesabıyla her
+dosya yeniden indirildi; tüm SHA-256 değerleri yüklemeden önceki dosyalarla eşleşti.
+[Hazırlama/doğrulama CI](https://github.com/wGodfather/NuvioDesktop/actions/runs/37117146679)
+geçti. Manifest stableAccepted=false ve windowsTrustedSigned=false değerlerini
+açıkça kaydeder. Tam uygulama SBOM'u yerine geçmeyen envanter kapsamı da belirtilir.
+Windows MSI 1.1.31 ve imzasız kimlik, paket içinden çıkarılan helper'ın 23 testi,
+dört APK'nın native hash/16 KB/lisans ve tek fork imza kimliği yeniden doğrulandı.
+PR testinin gerçek synthetic merge commit'i manifestte kaydedildi; paket kaynağına
+göre yalnız test-peer değişiklikleri olduğu GitHub compare ile doğrulandı.
+
+İlk hazırlama CI 37116871157, apksigner'ın yeni `V2 Signer:` sertifika etiketini
+okuyamadığı için Release oluşturmadan durdu. Eski `Signer #1` ve açık V2/V3
+etiketleri tek imza kimliği kontrolüyle desteklendi; x86_64 APK imzası yerelde de
+kriptografik olarak doğrulandı. Başarısız tur başarı sayılmadı. Taslak raporlarının
+hazırlama kaynak revizyonu aab795a4; bu son sonuç eki repo raporuna sonradan eklendi.
+Yayımlanmış 0.1.29 ve turkiye dalı f3e2502 değişmedi. Public 0.1.30 tag'i yaratılmadı.
+
 ## Kararlı yayını engelleyen eksikler
 
 1. Fiziksel telefon/tablet/TV ve temiz Windows test makinesi yok (kullanıcı bildirdi).
