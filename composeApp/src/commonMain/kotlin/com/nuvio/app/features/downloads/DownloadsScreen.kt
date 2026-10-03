@@ -141,7 +141,7 @@ fun DownloadsScreen(
     }
 }
 
-private fun LazyListScope.downloadsRootContent(
+internal fun LazyListScope.downloadsRootContent(
     uiState: DownloadsUiState,
     onOpenDownload: (DownloadItem) -> Unit,
     onOpenShow: (showId: String, title: String) -> Unit,
@@ -265,7 +265,7 @@ private fun LazyListScope.downloadsRootContent(
     }
 }
 
-private fun LazyListScope.downloadsShowContent(
+internal fun LazyListScope.downloadsShowContent(
     showId: String,
     episodes: List<DownloadItem>,
     onOpenDownload: (DownloadItem) -> Unit,

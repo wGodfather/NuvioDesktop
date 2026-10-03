@@ -170,6 +170,7 @@ internal data class AppTabActions(
     val onLibraryPosterLongClick: ((LibraryItem, LibrarySection) -> Unit)? = null,
     val onLibrarySectionViewAllClick: ((LibrarySection, LibrarySortOption) -> Unit)? = null,
     val onCloudFilePlay: ((CloudLibraryItem, CloudLibraryFile) -> Unit)? = null,
+    val onOpenDownload: ((com.nuvio.app.features.downloads.DownloadItem) -> Unit)? = null,
     val onConnectCloudClick: (() -> Unit)? = null,
     val onContinueWatchingClick: ((ContinueWatchingItem) -> Unit)? = null,
     val onContinueWatchingLongPress: ((ContinueWatchingItem) -> Unit)? = null,
@@ -273,6 +274,7 @@ internal fun AppTabHost(
                     onPosterLongClick = actions.onLibraryPosterLongClick,
                     onSectionViewAllClick = actions.onLibrarySectionViewAllClick,
                     onCloudFilePlay = actions.onCloudFilePlay,
+                    onOpenDownload = actions.onOpenDownload,
                     onConnectCloudClick = actions.onConnectCloudClick,
                     disintegrationRequest = state.libraryDisintegrationRequest,
                 )

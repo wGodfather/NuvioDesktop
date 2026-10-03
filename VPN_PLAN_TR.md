@@ -1,6 +1,6 @@
 # Nuvio — İsteğe bağlı WireGuard VPN entegrasyon planı
 
-Tarih: 2 Ekim 2026. Durum: Windows x64 deneysel uygulaması geliştirme dalında hazırlanıyor; henüz yayımlanmış sürüme eklenmedi. İncelenen proje: NuvioDesktop-Fork. Kullanıcı kararı: VPN kullanımı isteğe bağlı olacak. Güncel uygulama ve test sınırları `VPN_IMPLEMENTATION_TR.md` dosyasındadır.
+Tarih: 3 Ekim 2026. Durum: Windows x64 deneysel uygulaması, fork'un yayımlanmış 0.1.29-alpha kaynakları üzerine güncellendi; yayımlanan paketlere VPN eklenmedi. İncelenen proje: NuvioDesktop-Fork. Kullanıcı kararı: VPN kullanımı isteğe bağlı olacak. Güncel uygulama ve test sınırları `VPN_IMPLEMENTATION_TR.md` dosyasındadır.
 
 ## 1. Amaç ve sınırlar
 

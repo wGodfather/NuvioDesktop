@@ -27,7 +27,8 @@ import java.security.MessageDigest
 
 internal actual object StreamSourceVerifier {
     actual val enabled = System.getProperty("os.name").contains("windows", ignoreCase = true)
-    private val permits = Semaphore(4)
+    private val directPermits = Semaphore(4)
+    private val torrentPermits = Semaphore(2)
     private val client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).followRedirects(HttpClient.Redirect.NORMAL).build()
     private val contexts = java.util.concurrent.ConcurrentHashMap<String, StreamVerificationContext>()
     private data class CacheEntry(val stream: StreamItem, val checkedAt: Long)
@@ -83,9 +84,19 @@ internal actual object StreamSourceVerifier {
         return enriched
     }
 
-    actual suspend fun verify(stream: StreamItem, context: StreamVerificationContext): StreamItem? = permits.withPermit {
+    actual suspend fun verify(stream: StreamItem, context: StreamVerificationContext): StreamItem? {
         val key = "${context.videoId}:${context.season}:${context.episode}:${stream.p2pInfoHash ?: stream.url}:${stream.p2pFileIdx}:${stream.behaviorHints.proxyHeaders?.request}"
-        cache[key]?.takeIf { System.currentTimeMillis() - it.checkedAt < 120_000L }?.let { return@withPermit it.stream }
+        fun cachedStream(): StreamItem? = cache[key]?.takeIf { System.currentTimeMillis() - it.checkedAt < 120_000L }?.stream?.let { checked ->
+            // Reuse measured facts, while keeping this provider's identity and current seed count.
+            stream.copy(
+                verifiedMedia = checked.verifiedMedia, fileIdx = checked.fileIdx, description = checked.description,
+                seeders = StreamListingPolicy.seedCount(stream),
+                behaviorHints = stream.behaviorHints.copy(filename = checked.behaviorHints.filename, videoSize = checked.behaviorHints.videoSize),
+            )
+        }
+        cachedStream()?.let { return it }
+        return (if (stream.isTorrentStream) torrentPermits else directPermits).withPermit {
+        cachedStream()?.let { return@withPermit it }
         try {
             val verified = withTimeoutOrNull(65_000L) {
                 if (stream.isTorrentStream) verifyTorrent(stream, context) else verifyDirect(stream, context)
@@ -96,6 +107,7 @@ internal actual object StreamSourceVerifier {
             }
             verified
         } catch (error: CancellationException) { throw error } catch (_: Exception) { null }
+        }
     }
 
     private suspend fun verifyTorrent(stream: StreamItem, context: StreamVerificationContext): StreamItem? {
@@ -115,6 +127,7 @@ internal actual object StreamSourceVerifier {
             val file = if (stream.p2pFileIdx != null) candidates.firstOrNull { it.id == stream.p2pFileIdx!! + 1 }
                 else candidates.maxByOrNull { it.length }
             if (file == null) return null
+            if (file.length < StreamListingPolicy.minimumTorrentBytes) return null
             val media = probe(P2pStreamingEngine.getTorrentStreamUrl(hash, file.id), emptyMap()) ?: return null
             if (!durationMatches(media, context)) return null
             return verifiedPresentation(stream.copy(fileIdx = file.id - 1, behaviorHints = stream.behaviorHints.copy(filename = file.path.substringAfterLast('/'), videoSize = file.length)), media.copy(sizeBytes = file.length))
@@ -126,7 +139,7 @@ internal actual object StreamSourceVerifier {
     private suspend fun verifyDirect(stream: StreamItem, context: StreamVerificationContext): StreamItem? {
         val url = stream.playableDirectUrl?.takeIf { it.startsWith("https://") || it.startsWith("http://") } ?: return null
         val media = probe(url, stream.behaviorHints.proxyHeaders?.request.orEmpty()) ?: return null
-        if (!durationMatches(media, context) || media.sizeBytes == null) return null
+        if (!durationMatches(media, context)) return null
         if (!media.contentTitle.isNullOrBlank() && !matchesVerifiedContent(media.contentTitle, context.copy(year = null))) return null
         // A direct source was requested with the content ID; when the container carries
         // a title, also require it to agree. Never treat a generic provider name as a title.

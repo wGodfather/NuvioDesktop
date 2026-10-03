@@ -2153,4 +2153,7 @@ Bu özelliği tamamen kendi sorumluluğunuzda kullanırsınız. P2P istediğiniz
     <string name="layout_ratings_show">Göster</string>
     <string name="layout_ratings_hide">Gizle</string>
     <string name="layout_ratings_hide_unwatched">İzlenmeyenleri Gizle</string>
+    <string name="streams_torrent_sources">Torrent kaynakları</string>
+    <string name="streams_direct_sources">Diğer kaynaklar</string>
+    <string name="streams_download_in_library">İndirilenlerde mevcut — Kitaplıktan yönetebilirsiniz</string>
 </resources>

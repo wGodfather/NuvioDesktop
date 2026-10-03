@@ -1,8 +1,11 @@
 # İsteğe bağlı WireGuard — Windows x64 deneysel uygulaması
 
-Bu çalışma yalnızca `wGodfather/NuvioDesktop` fork'u içindir. Yayımlanmış
-0.1.28-alpha paketleri değişmez. Sonraki uygulama sürümü, yayın kontrolleri
-tamamlandıktan sonra 0.1.29-alpha olarak hazırlanacaktır. Android, Android TV,
+Bu çalışma yalnızca `wGodfather/NuvioDesktop` fork'u içindir. Deneysel VPN dalı,
+yayımlanmış 0.1.29-alpha kaynakları üzerine güncellenmiştir. Kitaplık İndirilenler
+sekmesi, kaynak indirme butonu ve kaynak filtreleme/sıralama değişiklikleri korunur.
+Yayımlanmış 0.1.28-alpha ve 0.1.29-alpha paketleri değiştirilmez; VPN test paketi
+ayrı geliştirme çıktısıdır. Genel VPN yayını için yeni sürüm numarası ve aşağıdaki
+yayın kontrolleri gerekir. Android, Android TV,
 iOS, macOS ve Linux için bağlantı desteği bu değişiklikte etkinleştirilmez.
 
 Kaynak değişikliği: https://github.com/wGodfather/NuvioDesktop/pull/1 (taslak).
@@ -86,13 +89,19 @@ servis yeniden başlatma ve koruma kaldırıldıktan sonra internetin geri gelme
 Başarılı çalışma: https://github.com/wGodfather/NuvioDesktop/actions/runs/37012387081
 Bu testler tam DNS/IPv6/torrent sızıntı testi veya hız testi yerine geçmez.
 
-Windows test paketi de başarıyla üretildi:
+Önceki 0.1.28-alpha tabanlı Windows test paketi de başarıyla üretildi:
 https://github.com/wGodfather/NuvioDesktop/actions/runs/37039846218
 Paketin uygulama kaynak commit'i `464defa970b4d01cd3a3facc3513b974276e3e19`.
 MSI SHA-256, içindeki üç VPN çalıştırılabilirinin SHA-256 manifesti, lisans/kaynak
 dosyalarının bulunması ve paket içinden çıkarılan yardımcının 23 testi doğrulandı.
 Paket kurularak çalıştırılmadı; test dosyasıdır ve sürüm yayını değildir.
-Bu test paketinde taban sürüm numarası 0.1.28-alpha korunur.
+Bu önceki test paketinde taban sürüm numarası 0.1.28-alpha korunmuştu.
+
+3 Ekim 2026 güncellemesinin tabanı `0.1.29-alpha` etiketi,
+`f3e2502ba58052ac3201b7b3c6ca4033278ebf65` commit'idir. Yayımlanmış sürümün
+Windows/Android arayüz ve kaynak listeleme değişiklikleri VPN dalına taşınmıştır.
+VPN hâlâ yalnızca Windows x64'te ve varsayılan kapalıdır. Bu geliştirme çıktısının
+0.1.29-alpha taban numarası, yayımlanmış 0.1.29 paketinin VPN içerdiği anlamına gelmez.
 
 Taslak PR'daki upstream'den kalan şablon kontrolü, bağlantılı bir talep/issue
 olmadığı için başarısızdır. Fork sahibinin uygulama isteği bu sohbetten gelir;

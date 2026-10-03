@@ -12,11 +12,14 @@ magnet=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["magnet
 sha256=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["sha256"])' "$fixture")
 bytes=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["bytes"])' "$fixture")
 ./gradlew :androidApp:connectedFullDebugAndroidTest \
-  '-Pandroid.testInstrumentationRunnerArguments.class=com.nuvio.android.ForkAndroidIntegrationTest' \
+  '-Pandroid.testInstrumentationRunnerArguments.class=com.nuvio.android.ForkAndroidIntegrationTest,com.nuvio.android.LibraryDownloadsUiTest' \
   '-Pandroid.testInstrumentationRunnerArguments.manifest=https://raw.githubusercontent.com/dr-octagon/nuvio/main/manifest.json' \
   "-Pandroid.testInstrumentationRunnerArguments.magnet=$magnet" \
   "-Pandroid.testInstrumentationRunnerArguments.sha256=$sha256" \
   "-Pandroid.testInstrumentationRunnerArguments.bytes=$bytes" \
+  -Pandroid.injected.androidTest.leaveApksInstalledAfterRun=true \
   -Pkotlin.compiler.execution.strategy=in-process --max-workers=1 --no-daemon --no-configuration-cache
 grep -q 'metadata served' android-seed.log
 grep -q 'piece served:' android-seed.log
+mkdir -p android-ui-screenshots
+adb pull /sdcard/Android/data/com.wgodfather.nuvio.debug/files/fork-ui-qa/library-downloads.png android-ui-screenshots/

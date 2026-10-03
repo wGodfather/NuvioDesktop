@@ -27,7 +27,7 @@ internal data class PluginProviderGroup(
 )
 
 internal sealed interface StreamLoadCompletion {
-    data class Addon(val group: AddonStreamGroup) : StreamLoadCompletion
+    data class Addon(val group: AddonStreamGroup, val isFinal: Boolean = true) : StreamLoadCompletion
     data class PluginScraper(
         val addonId: String,
         val streams: List<StreamItem>,
@@ -119,6 +119,7 @@ internal fun PluginRuntimeResult.toStreamItem(
         addonName = addonName,
         addonId = addonId,
         streamType = normalizeStreamType(type),
+        seeders = seeders?.takeIf { it >= 0 },
         behaviorHints = StreamBehaviorHints(
             videoSize = videoSize ?: parseStreamSizeBytes(size),
             filename = filename,

@@ -10,6 +10,7 @@ import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -27,6 +28,22 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.TooltipBox
+import androidx.compose.material3.PlainTooltip
+import androidx.compose.material3.TooltipDefaults
+import androidx.compose.material3.rememberTooltipState
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Download
+import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.runtime.staticCompositionLocalOf
+import com.nuvio.app.core.ui.NuvioLoadingIndicator
+import com.nuvio.app.features.downloads.DownloadStatus
+import nuvio.composeapp.generated.resources.*
+import org.jetbrains.compose.resources.stringResource
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -51,6 +68,24 @@ import com.nuvio.app.core.ui.nuvioDesktopDragScroll
 import com.nuvio.app.features.debrid.DebridProviders
 import com.nuvio.app.isDesktop
 
+internal data class StreamDownloadAction(
+    val onDownload: (StreamItem) -> Unit,
+    val preparing: Boolean,
+    val existingStatus: DownloadStatus?,
+)
+
+internal val LocalStreamDownloadAction = staticCompositionLocalOf<StreamDownloadAction?> { null }
+
+internal fun StreamItem.supportsDownloadButton(supportsHls: Boolean = isDesktop): Boolean {
+    if (shouldOpenExternally) return false
+    if (isTorrentStream || isDirectDebridStream) return true
+    val direct = playableDirectUrl ?: return false
+    if (!direct.startsWith("https://", true) && !direct.startsWith("http://", true)) return false
+    if (direct.contains(".mpd", true) || streamType == "dash") return false
+    return supportsHls || !(direct.contains(".m3u8", true) || streamType == "hls")
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun StreamCard(
     stream: StreamItem,
@@ -189,6 +224,41 @@ internal fun StreamCard(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
+            }
+        }
+        LocalStreamDownloadAction.current?.let { action ->
+            val supported = stream.supportsDownloadButton()
+            val label = when {
+                !supported -> stringResource(Res.string.downloads_enqueue_unsupported_format)
+                action.existingStatus != null -> stringResource(Res.string.streams_download_in_library)
+                else -> stringResource(Res.string.streams_download_file)
+            }
+            Spacer(Modifier.width(8.dp))
+            TooltipBox(
+                positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
+                tooltip = { PlainTooltip { Text(label) } },
+                state = rememberTooltipState(),
+            ) {
+                Box(Modifier.size(48.dp).clickable { /* Consume taps on a disabled download button, too. */ }) {
+                    IconButton(
+                        onClick = { action.onDownload(stream) },
+                        enabled = supported && !action.preparing && action.existingStatus == null,
+                        modifier = Modifier.size(48.dp),
+                        colors = IconButtonDefaults.iconButtonColors(
+                            contentColor = MaterialTheme.colorScheme.onSurface,
+                            disabledContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
+                        ),
+                    ) {
+                        if (action.preparing || action.existingStatus == DownloadStatus.Downloading) {
+                            NuvioLoadingIndicator(modifier = Modifier.size(20.dp))
+                        } else {
+                            Icon(
+                                if (action.existingStatus == DownloadStatus.Completed) Icons.Rounded.CheckCircle else Icons.Rounded.Download,
+                                contentDescription = label,
+                            )
+                        }
+                    }
+                }
             }
         }
     }

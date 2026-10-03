@@ -1,29 +1,17 @@
-# Nuvio Türkiye 0.1.28-alpha
+# Nuvio Türkiye 0.1.29-alpha — Windows ve Android
 
-- Film/dizi araması, Türkçe tür filtreleri ve katalog sayfalaması düzeltildi.
-- Özel statik eklentinin arama adreslerinden kaynaklanan HTTP 404 giderildi.
-- Torrent başlığındaki magnet kodlama hatasından kaynaklanan HTTP 500 düzeltildi.
-- Windows torrent ve HLS indirmeleri, kaynak yenileme ve devam etme iyileştirildi.
-- Windows kaynakları gerçek dosya boyutu, video çözünürlüğü ve içerik eşleşmesiyle
-  doğrulanıyor; boyuta göre büyükten küçüğe, eşitse çözünürlük/kaliteye göre sıralanıyor.
-- Android torrent indirmesi bağımsız Nuvio Engine oturumuna bağlandı. Doğru dosya
-  seçimi, range ile devam etme, iptal/temizleme ve yerel ağ yönlendirmesi düzeltildi.
-- Windows ve Android güncelleme kontrolü wGodfather/NuvioDesktop sürümlerini kullanıyor.
+- Kitaplığa Kaydedildi ve Bulut sekmelerinin yanına İndirilenler eklendi. İndirmeleri görmek ve yönetmek için Ayarlar'a gitmek gerekmiyor.
+- Her kaynağın sağına indirme butonu eklendi. Butona basmak oynatmayı başlatmaz; mevcut veya tamamlanan indirme yanlışlıkla değiştirilmez.
+- Torrent listesi en az 5 bildirilen seed, 1080p sınıfı veya üzeri çözünürlük ve seçilen dosyada en az 1 GiB boyut şartıyla filtrelenir. Seed, çözünürlük veya dosya boyutu bilinmeyen torrentler gösterilmez.
+- Torrent olmayan kaynaklar 1080p sınıfı veya üzeri çözünürlükte gösterilir; bunlara boyut sınırı uygulanmaz. Sinemaskop 1920×800 gibi 1080p sınıfındaki videolar korunur.
+- Doğrudan kaynaklar hazır oldukça görünür, torrentlerin tamamlanmasını beklemez. Torrentler üstte, diğer kaynaklar altta ayrı bölümlerde kalır.
+- Her bölümde dosya boyutu büyükten küçüğe sıralanır; eşitse çözünürlük ve yayın kalitesi kullanılır.
+- Önceki arama, Türkçe filtre, katalog sayfalama ve torrent indirme düzeltmeleri korunur. İndirme simgesinin koyu arka planda görünürlüğü iyileştirildi.
 
-Android için 49 hedefli test geçti. Android 16 sanal cihazında Suits araması başarılı
-oldu; küçük yerel test videosu torrentten indirilip boyutu ve SHA-256 ile doğrulandı.
-Windows'un önceki 51 hedefli testi ile film/dizi araması, beş katalog, tür filtresi,
-devam sayfası ve bölüm bilgileri de doğrulanmıştı.
+Windows'ta mevcut gerçek medya ve içerik doğrulaması sürer. Android filtreleri eklentinin bildirdiği çözünürlük, dosya boyutu ve seed bilgilerini kullanır; Windows'a özel ffprobe doğrulaması Android'e eklenmedi.
 
-Android APK: cihaz mimarisine uygun dosyayı seçin (çoğu güncel telefon arm64-v8a).
-Paket kimliği `com.wgodfather.nuvio`; resmî uygulama ile yan yana kurulabilir.
-Android 7+ hedeflenir; fiziksel ARM telefon ve iOS paketi bu çalışmada test edilmedi.
-Android'de HLS çevrimdışı indirme ve Windows'a özel sıkı video doğrulaması bulunmaz;
-Android torrent ve doğrudan video indirmeleri desteklenir.
+Windows x64 için MSI; Android için arm64-v8a, armeabi-v7a, x86 ve x86_64 APK'ları sunulur. Çoğu güncel Android telefon için arm64-v8a dosyasını seçin. Android paket kimliği `com.wgodfather.nuvio`, önceki fork sürümüyle aynı imzayı kullanır. Resmî uygulamanın yanında kurulabilir. Android 7 ve üzeri hedeflenir.
 
-Hesap senkronizasyonu ve Trakt için kendi hizmet yapılandırmanız gerekir.
-Katalog, yerel ayarlar, kaynak eklentileri ve indirmeler yerel/misafir kullanımında çalışır.
-Windows'un mevcut ayarları ve indirmeleri korunur. Android fork'u ayrı uygulamadır;
-resmî uygulamanın özel profil verilerini kendiliğinden aktaramaz.
+Android'de HLS çevrimdışı indirme henüz desteklenmez; bu kaynakların indirme butonu pasiftir. Torrent ve doğrudan video indirmeleri desteklenir. Fiziksel ARM telefon ve iOS paketi bu çalışmada doğrulanmadı.
 
-Yayın taslaktır; otomatik güncellemede görünmez. Yayımlama kullanıcı onayını bekler.
+Bu alpha sürüm arayüz ve kaynak listesi güncellemesidir. Ayrı VPN geliştirme dalı bu yayına dahil edilmedi. Mevcut fork ayarları ve indirme kayıtları korunur. Hesap senkronizasyonu ve Trakt için kendi hizmet yapılandırmanız gerekir.
