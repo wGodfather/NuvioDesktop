@@ -441,7 +441,11 @@ actual object P2pStreamingEngine {
                 start()
             }
 
-            val deadline = System.currentTimeMillis() + STARTUP_TIMEOUT_MS
+            // A protected network can reject the engine's optional public-IP/DNS
+            // discovery during cold startup. Keep its process behind the VPN gate
+            // while those lookups finish instead of declaring failure after 15s.
+            val startupTimeout = if (VpnPlatform.controller().state.value.enabled) VPN_STARTUP_TIMEOUT_MS else STARTUP_TIMEOUT_MS
+            val deadline = System.currentTimeMillis() + startupTimeout
             while (System.currentTimeMillis() < deadline) {
                 if (isRunning()) {
                     log.d { "TorrServer started successfully" }
@@ -456,7 +460,7 @@ actual object P2pStreamingEngine {
             }
 
             stop()
-            throw P2pStreamingException("TorrServer failed to start within ${STARTUP_TIMEOUT_MS / 1000}s")
+            throw P2pStreamingException("TorrServer failed to start within ${startupTimeout / 1000}s")
         } }
 
         fun confirmStopped(): Boolean = !isProcessAlive(process) && !isRunning()
@@ -583,6 +587,7 @@ actual object P2pStreamingEngine {
         companion object {
             const val PORT = 8091
             private const val STARTUP_TIMEOUT_MS = 15_000L
+            private const val VPN_STARTUP_TIMEOUT_MS = 60_000L
             private const val HEALTH_CHECK_INTERVAL_MS = 200L
         }
     }
