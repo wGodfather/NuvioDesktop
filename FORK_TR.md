@@ -87,7 +87,7 @@ Eklenti arama protokolü `docs/tmdb-catalogs.md` içinde açıklanır.
 
 ## Bileşenler ve lisans
 
-İsteğe bağlı Windows WireGuard VPN çalışması deneysel ayrı dalda hazırlanır;
+İsteğe bağlı Windows WireGuard VPN çalışması `0.1.30-alpha` olarak deneysel ayrı dalda hazırlanır;
 yayımlanmış sürüme henüz eklenmemiştir. Kapsam, testler ve yayın koşulları
 `VPN_IMPLEMENTATION_TR.md`, ayrıntılı plan `VPN_PLAN_TR.md` dosyalarındadır.
 

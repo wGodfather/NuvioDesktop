@@ -4,8 +4,8 @@ Bu çalışma yalnızca `wGodfather/NuvioDesktop` fork'u içindir. Deneysel VPN 
 yayımlanmış 0.1.29-alpha kaynakları üzerine güncellenmiştir. Kitaplık İndirilenler
 sekmesi, kaynak indirme butonu ve kaynak filtreleme/sıralama değişiklikleri korunur.
 Yayımlanmış 0.1.28-alpha ve 0.1.29-alpha paketleri değiştirilmez; VPN test paketi
-ayrı geliştirme çıktısıdır. Genel VPN yayını için yeni sürüm numarası ve aşağıdaki
-yayın kontrolleri gerekir. Android, Android TV,
+ayrı geliştirme çıktısıdır ve sürümü `0.1.30-alpha` olarak ayrılmıştır. Genel VPN
+yayını için aşağıdaki yayın kontrolleri gerekir. Android, Android TV,
 iOS, macOS ve Linux için bağlantı desteği bu değişiklikte etkinleştirilmez.
 
 Kaynak değişikliği: https://github.com/wGodfather/NuvioDesktop/pull/1 (taslak).
@@ -101,7 +101,9 @@ Bu önceki test paketinde taban sürüm numarası 0.1.28-alpha korunmuştu.
 `f3e2502ba58052ac3201b7b3c6ca4033278ebf65` commit'idir. Yayımlanmış sürümün
 Windows/Android arayüz ve kaynak listeleme değişiklikleri VPN dalına taşınmıştır.
 VPN hâlâ yalnızca Windows x64'te ve varsayılan kapalıdır. Bu geliştirme çıktısının
-0.1.29-alpha taban numarası, yayımlanmış 0.1.29 paketinin VPN içerdiği anlamına gelmez.
+VPN geliştirme paketi `0.1.30-alpha` (sürüm kodu 30) olarak numaralandırılır;
+yayımlanmış 0.1.29 paketinde VPN bulunmaz. Ortak sürüm dosyası Android derlemelerinin
+numarasını da belirler, ancak bu çalışmada Android VPN paketi üretilmez.
 
 0.1.29 tabanında 59 masaüstü testi geçti: VPN politika/protokol, magnet,
 kaynak filtreleme/sıralama, kaynak menüsü, ayrıştırma, video doğrulama ve HLS
@@ -111,7 +113,7 @@ Android host ortamında 83 test geçti: yayımlanmış 0.1.29'un 68 kaynak/indir
 arama/katalog testi ve 15 ortak VPN politika testi. Bu çalışmada yeni Android
 APK veya fiziksel cihaz VPN testi yapılmadı; Android bağlantı desteği etkin değildir.
 
-Yeni Windows test paketi:
+Önceki 0.1.29 taban numarasıyla üretilmiş Windows test paketi:
 https://github.com/wGodfather/NuvioDesktop/actions/runs/37080976116
 Uygulama kaynak commit'i `7756f8af`; MSI SHA-256:
 `e8c241f73025b3552895707b23979fc5362c25faca45e01b8784f94942cab01e`.
