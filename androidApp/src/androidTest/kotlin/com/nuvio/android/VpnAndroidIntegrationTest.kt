@@ -94,7 +94,8 @@ class VpnAndroidIntegrationTest {
             assertFalse(VpnPlatform.controller().state.value.supported)
             // Status and scope both explain unsupported devices; neither is a unique selector.
             compose.onAllNodesWithText("VPN support is not available on this device yet.")[0].assertIsDisplayed()
-            compose.onNode(hasToggleableState()).assertIsNotEnabled()
+            compose.onNode(SemanticsMatcher.keyIsDefined(androidx.compose.ui.semantics.SemanticsProperties.ToggleableState))
+                .assertIsNotEnabled()
             compose.onNodeWithText("Enter a connection profile").assertDoesNotExist()
             return
         }
