@@ -1,172 +1,110 @@
-# İsteğe bağlı WireGuard — Windows x64 deneysel uygulaması
+# İsteğe bağlı WireGuard — Android, TV ve Windows deneysel uygulaması
 
-Bu çalışma yalnızca `wGodfather/NuvioDesktop` fork'u içindir. Deneysel VPN dalı,
-yayımlanmış 0.1.29-alpha kaynakları üzerine güncellenmiştir. Kitaplık İndirilenler
-sekmesi, kaynak indirme butonu ve kaynak filtreleme/sıralama değişiklikleri korunur.
-Yayımlanmış 0.1.28-alpha ve 0.1.29-alpha paketleri değiştirilmez; VPN test paketi
-ayrı geliştirme çıktısıdır ve sürümü `0.1.30-alpha` olarak ayrılmıştır. Genel VPN
-yayını için aşağıdaki yayın kontrolleri gerekir. Bu belgenin aşağıdaki Windows
-prototip kanıtları geçmiş uygulamayı anlatır. 3 Ekim 07:15 geliştirmesi Android
-telefon/tablet, Android TV ve Google TV backend'ini ekler. Güncel sürüm kodu 31,
-MSI 1.1.31; mimari, CI sonuçları ve eksik kabul kapıları VPN_VALIDATION_TR.md'dedir.
-iOS, macOS ve Linux bağlantı desteği bu kapsamda etkinleştirilmez.
+Bu geliştirme wGodfather/NuvioDesktop fork'unun yayımlanmış 0.1.29-alpha tabanı
+üzerindedir. Kitaplık İndirilenler, kaynak indirme butonu ve kaynak/arama
+değişiklikleri korunur. Aday 0.1.30-alpha / 31, MSI 1.1.31'dir.
+Kararlı hedef 0.1.30 / 32, MSI 1.1.32; kabul kapıları henüz geçilmedi.
+[Güncel doğrulama raporu](VPN_VALIDATION_TR.md) ve
+[taslak PR](https://github.com/wGodfather/NuvioDesktop/pull/1) esas alınmalıdır.
+Önceki Windows prototipi/code 30 artık güncel uygulama kapsamı değildir.
 
-Kaynak değişikliği: https://github.com/wGodfather/NuvioDesktop/pull/1 (taslak).
-Uygulama ve test kodu hazırlanmıştır; aşağıdaki yayın kontrolleri devam eder.
+## Kullanım ve cihazlar
 
-## Kullanım
+VPN varsayılan kapalıdır; normal kullanım profil, abonelik veya VPN izni istemez.
+Android 10+ telefon/tablet, Android TV/Google TV full APK ve Windows x64 destek
+kapsamındadır. Android 7–9 normal kullanımı korunur, bu VPN backend'i açılmaz.
+iOS/macOS/Linux VPN desteği bu aşamada etkin değildir.
 
-Windows x64 ayarlarında **WireGuard VPN** sayfası bulunur. Varsayılan kapalıdır.
-Kapalı kullanım VPN profili, yönetici izni veya VPN aboneliği gerektirmez.
-İlk kurulum Windows yönetici onayıyla kendi kontrol servisini kurar. Kullanıcı
-P2P'ye izin veren sağlayıcısından aldığı `.conf` dosyasını içe aktarır.
-Bu önizleme bir sunucu, ücretsiz VPN hesabı veya sağlayıcı aboneliği sağlamaz.
+Ayarlar > Ağ ve VPN sayfasından sistem kurulumu/izni tamamlanır ve sağlayıcının
+WireGuard .conf profili içe aktarılır. TV'de dosya seçici yoksa maskeli elle profil
+girişi kullanılabilir; alanlar kaydırılır. Özel anahtar/PSK günlük, komut satırı
+ve genel ayarlara yazılmaz; formun açık anahtarları kalıcı UI state'e kaydedilmez.
+Bu özellik ücretsiz sunucu, VPN hesabı veya antivirüs sağlamaz.
 
-Önizlemede tek eş ve tam IPv4 tüneli gerekir. Endpoint ve DNS sayısal IP olmalıdır;
-alan adlı endpoint, birden çok eş, bölünmüş yönlendirme ve çalıştırılabilir profil
-komutları reddedilir. IPv6 tam tünel isteğe bağlıdır; fiziksel IPv6 çıkışı yine
-engellenir. VPN tüm bilgisayarın ağını kapsar; yerel ağ erişimi ve başka VPN'lerle
-birlikte kullanım bu aşamada desteklenmez. Yerel oynatıcı/motor iletişimi izinlidir.
+En fazla 16 KiB, tek eş ve tam IPv4 tüneli gerekir. IPv6 tam tünel isteğe bağlıdır;
+fiziksel IPv6 çıkışı korumalı kullanımda izinli sayılmaz. Endpoint/DNS sayısal IP
+olmalıdır. Domain endpoint, çoklu peer, split tunnel, profil komutları ve app
+dahil/hariç kuralları bu önizlemede reddedilir. MTU 1280–1500 aralığı doğrulanır.
+VPN sistem ağını etkiler; yerel motor/oynatıcı loopback iletişimi izinlidir.
 
-VPN açılırken önce sistem koruması etkinleşir, aktif indirmeler duraklatılır ve
-TorrServer kapanır. İndirme veya torrent oynatma yalnızca güncel eş el sıkışması
-ve mevcut güvenlik duvarı kuralları doğrulandığında başlayabilir. **Bağlantıyı kes**
-korumayı açık tutar. **VPN'i kapat** torrent motoru gerçekten durduktan sonra
-korumayı kaldırır. İndirmeler kendiliğinden korumasız sürdürülmez.
-Bağlantı kaybından sonra yeniden deneme gecikmesi artar; kullanıcının isteyerek
-kestiği bağlantı kendiliğinden açılmaz. Uygulama başlangıcında otomatik bağlantı
-ayrıca isteğe bağlıdır ve varsayılan kapalıdır.
+Açma/geçişten önce aktif torrent/HTTP indirme işleri ve motorları durur.
+Yeni native create/addMagnet işlemleri ortak izin kapısından geçer.
+Handshake ve platform yönlendirme/koruma kanıtı birlikte gerekir.
+**Bağlantıyı kes** korumayı açık tutar; **VPN'i kapat** işler gerçekten durunca
+korumayı kaldırır. İşler otomatik korumasız sürdürülmez. Kullanıcının isteyerek
+kestiği bağlantı kendiliğinden açılmaz. Otomatik bağlantı ayrı, varsayılan kapalıdır.
 
-## Anahtarlar ve servis
+## Android uygulaması
 
-Özel anahtar genel ayarlara, komut satırına, günlük veya hata metnine yazılmaz.
-Profil boyutu en fazla 16 KiB'dır. Profil stdin ve kullanıcıya bağlı yerel pipe
-üzerinden SYSTEM servisine gider. Diskte SYSTEM DPAPI ile şifrelenir; profil
-klasörüne SYSTEM/yöneticiler erişir. VPN ayarı cihaz genelinde tutulur.
-Servis tek Windows kullanıcısına bağlıdır; ikinci kullanıcı kurulumu reddedilir.
-Resmî WireGuard 1.1.1 çalıştırılabilirleri değiştirilmez. İndirilen MSI ve
-çalıştırılabilirler sabit SHA-256 ve yayıncı imzasıyla doğrulanır. Yardımcı servis
-derlenir; imzalanması yayın kontrolü olarak bekler.
+Resmî WireGuard tunnel kütüphanesi, BIND_VPN_SERVICE korumalı ve dışa kapalı
+NuvioWireGuardService aracılığıyla ayrı :nuvio_vpn sürecinde çalışır.
+IPC komut/id/replyTo coroutine başlamadan kopyalanır; anahtarlar Intent
+extras alanlarına yazılmaz. Profil Android Keystore/AES-GCM ve AtomicFile
+ile noBackup alanında şifrelenir.
 
-Bağımsız WFP kuralları servisin durması veya uygulamanın çökmesinden sonra kalır.
-Normal uygulama kapanışı önce indirmeleri/motoru durdurup korumayı kaldırır.
-Çökme sonrasında kullanıcı korumayı kaldırmak isterse bütün TorrServer işlemlerini
-kapatıp yönetici terminalinden aşağıdakini çalıştırabilir:
+Ana süreç VPN Network/netId'sine bağlanır; ayrı VPN sürecindeki dış WireGuard
+soketleri bu bağdan etkilenmez. Callback ve profile uyan UDP yerel kaynak adresi
+doğrulanmadan Connected torrent izni vermez. VPN kaybında netId fiziksel varsayılana
+geri çevrilmez. Oynatma ve arka plan indirme motorları ayrı takip edilir;
+Workers/JobService VPN açıkken fiziksel Network socketFactory/DNS seçmez.
+
+OS always-on/lockdown kullanıcı için isteğe bağlı ek korumadır. Sistem VPN sahibi
+UID'sini muaf tutabildiğinden Nuvio'nun kendi trafiği bu ayarla kanıtlanmaz.
+Sistem lockdown kontrolü VPN'in kapatılmasını engellerse uygulama bunu güvenli
+hata olarak gösterir; kullanıcı sistem VPN ayarından değiştirir.
+İzin iptalinde yeni işler reddedilir. TV launcher/banner ve D-pad izin/profil
+testleri bulunur; tam fiziksel TV kabulü doğrulama raporunda açık bağımlılıktır.
+
+## Windows uygulaması ve bakım
+
+İlk kurulum yönetici onayıyla owner SID'ye bağlı SYSTEM broker kurar. İkinci
+kullanıcının sahipliği değiştirmesi reddedilir; pipe istemci/servis kimliği
+doğrulanır. Profil SYSTEM DPAPI ve kısıtlı ACL altında saklanır.
+Resmî WireGuard 1.1.1 runtime hash/imzası sabittir.
+Nuvio yardımcı ve MSI şu anda imzasız alpha'dır. Stable paketleme güvenilir
+sertifika olmadan hata verir; kendinden imzalı dosya güvenilir sayılmaz.
+
+Kalıcı WFP kuralları servis/app çökmesi sonrasında korumayı tutar. Normal
+masaüstü kapanışında motor/indirmeler durdurulduktan sonra koruma kaldırılır.
+MSI yükseltme/onarım profil, SID ve korumayı korur; rollback eski uygulama,
+yardımcı ve durum yedeğini geri getirir. Kaldırma yalnız Nuvio VPN kaynaklarını
+temizler, uygulama verilerini ve başka VPN/paylaşılan sürücüyü korur.
+
+Çökme sonrası ağ kurtarma için önce bütün TorrServer işlemlerini kapatıp
+yönetici PowerShell terminalinde şu komut kullanılabilir:
 
 ```powershell
 & "$env:ProgramFiles/NuvioVpn/NuvioVpn.exe" recover
 ```
 
-VPN yardımcı servisini/profilini kaldırmak için, yine motor kapalıyken:
+Yardımcı servis/profili elle kaldırma, motor kapalıyken:
 
 ```powershell
 & "$env:ProgramFiles/NuvioVpn/NuvioVpn.exe" uninstall
 ```
 
-Yalnızca Nuvio'nun servisleri ve kuralları kaldırılır. Başka VPN'ler veya paylaşılan
-WireGuard sürücüsü silinmez. Uygulama MSI kaldırma/onarım işlemlerinin bu yardımcı
-servisle otomatik bütünleşmesi henüz yayın kontrolüdür; elle kaldırma komutu vardır.
+Günlük PC'de interneti kesen test yapılmadı. Firewall, gerçek peer ve MSI bakım
+testleri yalnız disposable GitHub Windows runner'larında çalışır.
 
-## Doğrulama ve yayın koşulları
+## Test, dağıtım ve lisanslar
 
-Başarılı kontroller (2 Ekim 2026): masaüstünde 17 VPN politika/protokol testi ve
-3 torrent bağlantı testi; Android'de 15 ortak VPN politikası ve 14 mevcut torrent
-testi; yardımcı serviste 23 profil, çerçeveleme, sahte servis reddi ve DPAPI testi.
-Android testleri Windows geliştirmesinin ortak kodunu doğrular, Android VPN
-bağlantı desteği anlamına gelmez.
-`.github/workflows/vpn-windows-tests.yml` güvenlik duvarı ve servis testlerini
-geçici Windows yöneticili makinede çalıştırır. Kullanıcının bilgisayarında internet
-kesen testler çalıştırılmaz.
+Son test sonuçları, CI bağlantıları ve eksikler VPN_VALIDATION_TR.md'dedir.
+tools/vpn-peer kapalı, sentetik DNS/IP ve küçük yasal torrent fixture'ına hizmet
+veren gerçek WireGuard netstack test aracıdır; public Internet'e çıkmaz.
+Kullanıcının profili gerekmez; test anahtarları bellekte üretilir ve yazdırılmaz.
+Bu aracın başarısı gerçek sağlayıcı/hız/physical pcap kabulünün yerine geçmez.
 
-`.github/scripts/test-vpn-demo.ps1` yalnızca geçici CI ortamında taze bir anahtar
-üretip WireGuard'ın resmî gösterim sunucusuyla gerçek el sıkışması, SYSTEM profil
-çözme, servis pipe'ı ve yeniden başlatma davranışını kontrol eder. Bu gösterim
-sunucusu kullanıcıların VPN sağlayıcısı olarak sunulmaz. Kullanıcının özel
-anahtarı gerekmez. Gösterim sunucusu erişilemezse test başarısız olur; doğrulanmış
-bağlantı iddiasında bulunulmaz.
+Android dört ABI APK, aynı fork sertifikası, native hash/lisans ve 64-bit 16 KB
+kontrolleriyle paketlenir. Windows MSI iç runtime manifesti ve lisans/kaynak
+dosyaları taşır. Bütün uygulama SBOM ve kararlı imzalı paket kabulü ayrıca gereklidir.
+Android tunnel Apache-2.0, native wireguard-go MIT, Go runtime BSD-3-Clause;
+lisanslar composeApp/src/androidMain/assets/vpn-licenses altında APK'ya girer.
+Windows yardımcı GPL-3.0-or-later, WireGuard Windows MIT, wg.exe GPL-2.0;
+gömülü resmî WireGuardNT ikilisi kendi dağıtım şartlarını korur.
+Kaynak/derleme linkleri composeApp/src/desktopMain/native/vpn/WireGuard-SOURCES.txt
+ile paketlenir. CI MSE test aracı anacrolix/torrent v1.61.0 MPL-2.0 kullanır;
+tools/vpn-peer/ANACROLIX-MPL-2.0.txt bulunur. Bu araç APK/MSI'ya eklenmez.
 
-Geçici Windows makinesinde 6 bağımsız WFP kontrolü ve 16 servis/gerçek eş kontrolü
-geçti: normal kullanıcı hesabıyla servis iletişimi, bağlantı öncesi/sırası/sonrası
-fiziksel IPv4 çıkışının engellenmesi, şifreli profil, gerçek WireGuard el sıkışması,
-servis yeniden başlatma ve koruma kaldırıldıktan sonra internetin geri gelmesi.
-Başarılı çalışma: https://github.com/wGodfather/NuvioDesktop/actions/runs/37012387081
-Bu testler tam DNS/IPv6/torrent sızıntı testi veya hız testi yerine geçmez.
-
-Önceki 0.1.28-alpha tabanlı Windows test paketi de başarıyla üretildi:
-https://github.com/wGodfather/NuvioDesktop/actions/runs/37039846218
-Paketin uygulama kaynak commit'i `464defa970b4d01cd3a3facc3513b974276e3e19`.
-MSI SHA-256, içindeki üç VPN çalıştırılabilirinin SHA-256 manifesti, lisans/kaynak
-dosyalarının bulunması ve paket içinden çıkarılan yardımcının 23 testi doğrulandı.
-Paket kurularak çalıştırılmadı; test dosyasıdır ve sürüm yayını değildir.
-Bu önceki test paketinde taban sürüm numarası 0.1.28-alpha korunmuştu.
-
-3 Ekim 2026 güncellemesinin tabanı `0.1.29-alpha` etiketi,
-`f3e2502ba58052ac3201b7b3c6ca4033278ebf65` commit'idir. Yayımlanmış sürümün
-Windows/Android arayüz ve kaynak listeleme değişiklikleri VPN dalına taşınmıştır.
-VPN hâlâ yalnızca Windows x64'te ve varsayılan kapalıdır. Bu geliştirme çıktısının
-VPN geliştirme paketi `0.1.30-alpha` (sürüm kodu 30) olarak numaralandırılır;
-yayımlanmış 0.1.29 paketinde VPN bulunmaz. Ortak sürüm dosyası Android derlemelerinin
-numarasını da belirler, ancak bu çalışmada Android VPN paketi üretilmez.
-
-0.1.29 tabanında 59 masaüstü testi geçti: VPN politika/protokol, magnet,
-kaynak filtreleme/sıralama, kaynak menüsü, ayrıştırma, video doğrulama ve HLS
-indirme kontrolleri. Yerel testte WebView2/MSVC bulunmadığından oynatıcı köprüsü
-derleme görevi atlandı; aşağıdaki Windows CI paketlemesinde bu görev de geçti.
-Android host ortamında 83 test geçti: yayımlanmış 0.1.29'un 68 kaynak/indirme/
-arama/katalog testi ve 15 ortak VPN politika testi. Bu çalışmada yeni Android
-APK veya fiziksel cihaz VPN testi yapılmadı; Android bağlantı desteği etkin değildir.
-
-Önceki 0.1.29 taban numarasıyla üretilmiş Windows test paketi:
-https://github.com/wGodfather/NuvioDesktop/actions/runs/37080976116
-Uygulama kaynak commit'i `7756f8af`; MSI SHA-256:
-`e8c241f73025b3552895707b23979fc5362c25faca45e01b8784f94942cab01e`.
-İndirilen MSI, paket içindeki üç VPN bileşeni, dört lisans/kaynak dosyası ve
-paketten çıkarılan yardımcının 23 testi doğrulandı. MSI bilgisayara kurulmadı.
-
-Yeni geçici Windows bağlantı/güvenlik duvarı kontrolü:
-https://github.com/wGodfather/NuvioDesktop/actions/runs/37080978546
-23 yardımcı program, 6 WFP ve 16 servis/gerçek eş kontrolü ikinci çalıştırmada
-geçti. İlk çalıştırmada 60 saniyede el sıkışması doğrulanamadı; aynı kaynakla
-tekrar çalıştırma geçti. İlk hatanın nedeni kesinleşmedi ve bu değişken sonuç
-genel sağlayıcı uyumluluğu kanıtı sayılmaz. Doğrulanmamış bağlantı korumalı
-olarak raporlanmadı.
-
-## 0.1.30-alpha sürüm numarası ve paket doğrulaması
-
-Kullanıcının isteğiyle VPN paketinin sürümü `0.1.30-alpha`, kodu `30` yapıldı.
-Windows testleri ve MSI paketlemesi geçti:
-https://github.com/wGodfather/NuvioDesktop/actions/runs/37086247592
-Paketin kaynak commit'i `3b350d62`; MSI SHA-256:
-`24b1d43143945c12286c24c7497d9d9c74339aaedeb9d52aac4ca58fb268d819`.
-İndirilen MSI içindeki uygulama sabitleri `0.1.30-alpha / 30` olarak doğrulandı.
-Windows kurulum veritabanındaki sürüm `1.1.30` olarak doğrulandı; mevcut paketleme
-işlevi Windows/JDK gereği ilk bileşeni en az 1 yapar. Uygulamada görünen sürüm
-`0.1.30-alpha` olarak kalır. Üç VPN ikilisinin manifest sağlama değerleri,
-lisans/kaynak dosyaları ve paket yardımcısının 23 testi geçti. MSI kurulmadı;
-0.1.29'dan gerçek kurulum yükseltme testi henüz yapılmadı. Bu paket deneysel
-geliştirme çıktısıdır; GitHub'da genel sürüm yayımlanmadı.
-
-Taslak PR'daki upstream'den kalan şablon kontrolü, bağlantılı bir talep/issue
-olmadığı için başarısızdır. Fork sahibinin uygulama isteği bu sohbetten gelir;
-GitHub üzerinde verilmiş bir issue onayı varmış gibi gösterilmez.
-
-Yayımdan önce tamamlanacaklar:
-
-- P2P'yi destekleyen gerçek sağlayıcıyla çıkış IP'si, torrent yükleme/indirme,
-  DNS/IPv6 sızıntısı ve hız karşılaştırması.
-- Fiziksel ağ değişimi, uyku/uyanma, uygulama/servis çökmesi, Windows yeniden
-  başlatma ve eski soketlerin koruma açılırken yeniden denetlenmesi.
-- VPN yardımcı servisinin imzası ve MSI kurulum/yükseltme/kaldırma yaşam döngüsü.
-- İkinci kullanıcı, başka VPN, Windows sürümleri ve fiziksel bilgisayarda
-  yönetici olmayan kullanıcı kabul testleri. CI'da normal kullanıcı hesabı geçti.
-- Fiziksel bilgisayarda ayar ekranı ve oynatıcı/indirme kabul testleri.
-
-Bu kontroller tamamlanmadan deneysel işaret kaldırılmaz, dal birleştirilmez ve
-genel sürüm yayımlanmaz. VPN virüs taraması veya mutlak anonimlik sağlamaz.
-
-## Lisans ve kaynaklar
-
-Nuvio yardımcı kodu GPL-3.0-or-later. WireGuard Windows istemcisi MIT, `wg.exe`
-GPL-2.0, resmî gömülü WireGuardNT ikilisi kendi dağıtım koşulları altındadır.
-Lisans metinleri ve sürüme bağlı kaynak/derleme bağlantıları
-`composeApp/src/desktopMain/native/vpn/WireGuard-SOURCES.txt` ile paketlenir.
+Fiziksel cihaz/laboratuvar ve Windows güvenilir imza erişimi yok. Sağlayıcı,
+tam sızıntı/uyku/reboot/ağ değişimi, 60 dakika video+indirme ve hız ölçümü
+tamamlanmadan alpha işareti kaldırılmaz, stable entegrasyon/public Release yapılmaz.

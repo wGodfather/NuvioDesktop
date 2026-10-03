@@ -1,0 +1,72 @@
+name: Prepare experimental VPN review draft
+
+on:
+  workflow_dispatch:
+    inputs:
+      package_source:
+        description: Exact application/package source commit (40 hex characters)
+        required: true
+        type: string
+      windows_run:
+        description: Successful Windows package and MSI lifecycle run
+        required: true
+        type: string
+      android_run:
+        description: Successful signed Android package and upgrade run
+        required: true
+        type: string
+      peer_run:
+        description: Successful Windows controlled peer run
+        required: true
+        type: string
+      matrix_run:
+        description: Successful Android and TV matrix run
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: vpn-review-release
+  cancel-in-progress: false
+
+jobs:
+  draft:
+    runs-on: windows-2022
+    timeout-minutes: 25
+    env:
+      GH_TOKEN: ${{ github.token }}
+      PACKAGE_SOURCE: ${{ inputs.package_source }}
+      WINDOWS_RUN: ${{ inputs.windows_run }}
+      ANDROID_RUN: ${{ inputs.android_run }}
+      PEER_RUN: ${{ inputs.peer_run }}
+      MATRIX_RUN: ${{ inputs.matrix_run }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 17
+      - name: Verify existing packages and prepare draft only
+        shell: pwsh
+        run: |
+          ./.github/scripts/prepare-vpn-review.ps1 -PackageSourceCommit $env:PACKAGE_SOURCE -WindowsRun $env:WINDOWS_RUN -AndroidRun $env:ANDROID_RUN -PeerRun $env:PEER_RUN -MatrixRun $env:MATRIX_RUN
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Nuvio-VPN-review-${{ inputs.package_source }}
+          path: ${{ runner.temp }}/vpn-release-review
+          if-no-files-found: warn
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Nuvio-VPN-QA-${{ inputs.package_source }}
+          path: ${{ runner.temp }}/vpn-review-qa
+          if-no-files-found: warn

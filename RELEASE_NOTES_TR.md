@@ -23,6 +23,11 @@ VPN hesabı sağlanmaz ve virüs taraması yapılmaz. Fiziksel cihaz, sızıntı
 performans, imza ve yaşam döngüsü kapıları tamamlanmadan kararlı yayın yapılmaz.
 Güncel kanıt ve eksikler `VPN_VALIDATION_TR.md` dosyasındadır.
 
+Windows yardımcı ve MSI henüz güvenilir yayıncı imzasına sahip değildir. Android
+APK'ları aynı fork sertifikasıyla imzalanır. Sanal telefon/TV testleri fiziksel
+cihaz, gerçek sağlayıcı, tam paket yakalama ve 60 dakika video/hız kabulü yerine
+geçmez. Bu aday yalnız inceleme için taslakta tutulur; public stable yayın değildir.
+
 ## Önceki yayımlanmış 0.1.29-alpha — Windows ve Android
 
 - Kitaplığa Kaydedildi ve Bulut sekmelerinin yanına İndirilenler eklendi. İndirmeleri görmek ve yönetmek için Ayarlar'a gitmek gerekmiyor.

@@ -3,6 +3,11 @@
 Hazırlanma: 3 Ekim 2026. Uygulama başlangıcı: aynı gün 07:15, Europe/Istanbul.
 07:15 bitiş/yayın saati değildir; geliştirme ve doğrulamanın başlangıcıdır.
 
+Uygulama durumu (3 Ekim): Bu belge başlangıç planını ve başlangıçtaki kaynak
+durumunu korur. Android/TV backend'i ve Windows MSI yaşam döngüsü uygulandı;
+güncel test sonucu ve eksikler [VPN_VALIDATION_TR.md](VPN_VALIDATION_TR.md)'dedir.
+Kullanıcı fiziksel cihaz ve Windows imzalama sertifikası/hizmeti olmadığını doğruladı.
+
 Kullanıcı talebi: VPN'i mobil, PC, Android TV ve Google TV'de çalışır hale getirmek;
 iyi çalıştığını doğruladıktan sonra kendi fork'una pushlamak ve GitHub Releases'te
 görünecek şekilde yayımlamak. VPN isteğe bağlı ve varsayılan kapalı kalacaktır.
