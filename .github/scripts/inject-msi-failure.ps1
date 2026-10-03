@@ -40,11 +40,37 @@ try {
     # A modified installer is a distinct package. Reusing PackageCode triggers
     # Windows Installer SecureRepair hash rejection before the fault action.
     $summary = $database.SummaryInformation(1)
+    $package = '{' + [Guid]::NewGuid().ToString().ToUpperInvariant() + '}'
     try {
         $summary.GetType().InvokeMember('Property', [Reflection.BindingFlags]::SetProperty, $null, $summary,
-            @([int]9, ('{' + [Guid]::NewGuid().ToString().ToUpperInvariant() + '}'))) | Out-Null
+            @([int]9, $package)) | Out-Null
         $summary.Persist()
     } finally { [Runtime.InteropServices.Marshal]::FinalReleaseComObject($summary) | Out-Null }
+    # Persist writes SummaryInformation into this transacted database; commit it
+    # too, otherwise the old PackageCode makes MSI pick the installed cache.
+    $database.Commit()
+} finally {
+    [Runtime.InteropServices.Marshal]::FinalReleaseComObject($database) | Out-Null
+    [Runtime.InteropServices.Marshal]::FinalReleaseComObject($installer) | Out-Null
+}
+$installer = New-Object -ComObject WindowsInstaller.Installer
+$database = $installer.OpenDatabase((Resolve-Path -LiteralPath $Msi).Path, 0)
+try {
+    foreach ($property in @('ProductCode', 'ProductVersion')) {
+        $view = $database.OpenView("SELECT ``Value`` FROM ``Property`` WHERE ``Property``='$property'")
+        try {
+            $view.Execute(); $record = $view.Fetch()
+            $expected = if ($property -eq 'ProductCode') { $product } else { $nextVersion }
+            if ($record.StringData(1) -ne $expected) { throw "Fault database did not persist $property." }
+            [Runtime.InteropServices.Marshal]::FinalReleaseComObject($record) | Out-Null
+        } finally { $view.Close(); [Runtime.InteropServices.Marshal]::FinalReleaseComObject($view) | Out-Null }
+    }
+    $summary = $database.SummaryInformation(0)
+    try {
+        $actual = $summary.GetType().InvokeMember('Property', [Reflection.BindingFlags]::GetProperty, $null, $summary, @([int]9))
+        if ($actual -ne $package) { throw 'Fault PackageCode was not persisted; cached MSI would hide the fault.' }
+    } finally { [Runtime.InteropServices.Marshal]::FinalReleaseComObject($summary) | Out-Null }
+    Write-Output "PASS persisted distinct fault ProductCode, PackageCode and version $nextVersion"
 } finally {
     [Runtime.InteropServices.Marshal]::FinalReleaseComObject($database) | Out-Null
     [Runtime.InteropServices.Marshal]::FinalReleaseComObject($installer) | Out-Null
