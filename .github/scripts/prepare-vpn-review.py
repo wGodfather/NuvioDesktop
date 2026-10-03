@@ -68,9 +68,11 @@ signers = set()
 for apk in apks:
     expected = (apk.with_suffix(apk.suffix + ".sha256")).read_text().split()[0]
     assert sha(apk) == expected == inventory[apk.name]["sha256"]
-    signature = (apk.with_suffix(apk.suffix + ".signature.txt")).read_text()
-    digest = next(line.split(": ", 1)[1] for line in signature.splitlines()
-        if line.startswith("Signer #1 certificate SHA-256 digest:"))
+    signature = (apk.with_suffix(apk.suffix + ".signature.txt")).read_text(encoding="utf-8-sig")
+    certificates = re.findall(r"^(?:Signer #1|V[23] Signer:) certificate SHA-256 digest: ([a-fA-F0-9]{64})$",
+        signature, re.MULTILINE)
+    assert certificates and len({value.lower() for value in certificates}) == 1, "Expected one signing identity"
+    digest = certificates[0].lower()
     signers.add(digest)
     with zipfile.ZipFile(apk) as archive:
         for item in inventory[apk.name]["native_libraries"]:
