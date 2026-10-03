@@ -31,6 +31,10 @@ interface VpnPreferences {
 
 interface VpnBackend {
     val supported: Boolean
+    val supportsTextImport: Boolean get() = false
+    val requiresSystemLockdown: Boolean get() = false
+    suspend fun importProfileText(text: String) { throw VpnOperationException("UNSUPPORTED") }
+    suspend fun openSystemSettings() { throw VpnOperationException("UNSUPPORTED") }
     suspend fun status(): VpnProtection
     suspend fun setup()
     suspend fun importProfile()
@@ -50,12 +54,15 @@ class VpnRequiredException : Exception("VPN_REQUIRED")
 class VpnController(private val preferences: VpnPreferences, private val backend: VpnBackend) {
     private val gate = Mutex()
     private var wantsConnection = false
+    private var trafficAuthorized = false
     private val mutableState = MutableStateFlow(
         VpnUiState(supported = backend.supported, enabled = preferences.enabled(),
             autoConnect = preferences.autoConnect(),
             status = if (preferences.enabled()) VpnStatus.Blocked else VpnStatus.Off),
     )
     val state: StateFlow<VpnUiState> = mutableState.asStateFlow()
+    val supportsTextImport get() = backend.supportsTextImport
+    val requiresSystemLockdown get() = backend.requiresSystemLockdown
 
     suspend fun initialize() {
         refresh()
@@ -64,15 +71,35 @@ class VpnController(private val preferences: VpnPreferences, private val backend
 
     suspend fun refresh() = gate.withLock {
         try {
-            apply(backend.status())
+            val protection = backend.status()
+            val nativeActivated = !preferences.enabled() && protection.status in setOf(VpnStatus.Connecting, VpnStatus.Connected, VpnStatus.Blocked)
+            if (nativeActivated || (state.value.enabled && (trafficAuthorized || state.value.status == VpnStatus.Connected) &&
+                (protection.status != VpnStatus.Connected || !protection.protected))) {
+                backend.quiesceTorrentTraffic()
+                trafficAuthorized = false
+            }
+            apply(protection)
         } catch (error: CancellationException) {
             throw error
         } catch (error: Exception) {
+            if (preferences.enabled() && trafficAuthorized) {
+                try { backend.quiesceTorrentTraffic(); trafficAuthorized = false }
+                catch (cancelled: CancellationException) { throw cancelled }
+                catch (_: Exception) { /* Retry on the next health check; never authorize new traffic. */ }
+            }
             fail(error)
         }
     }
 
     suspend fun setup() = operation { backend.setup(); apply(backend.status()) }
+    suspend fun openSystemSettings() = operation { backend.openSystemSettings() }
+
+    suspend fun importProfileText(text: String) = operation {
+        backend.quiesceTorrentTraffic()
+        if (state.value.enabled) apply(backend.hold())
+        backend.importProfileText(text)
+        apply(backend.status())
+    }
 
     suspend fun importProfile() = operation {
         // Replacing a profile must not disconnect a live motor under an old policy.
@@ -146,6 +173,7 @@ class VpnController(private val preferences: VpnPreferences, private val backend
             }
             apply(protection)
             if (protection.status != VpnStatus.Connected || !protection.protected) throw VpnRequiredException()
+            trafficAuthorized = true
         }
         block()
     }

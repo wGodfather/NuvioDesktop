@@ -21,6 +21,13 @@ import com.nuvio.app.core.poster.CustomPosterFallbackInterceptor
  */
 class NuvioApplication : Application(), SingletonImageLoader.Factory {
 
+    override fun onCreate() {
+        super.onCreate()
+        if (Build.VERSION.SDK_INT < 28 || !getProcessName().endsWith(":nuvio_vpn")) {
+            com.nuvio.app.features.vpn.VpnPlatform.initialize(this)
+        }
+    }
+
     override fun newImageLoader(context: android.content.Context): ImageLoader {
         return ImageLoader.Builder(context)
             .crossfade(true)

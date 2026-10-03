@@ -3,6 +3,7 @@ package com.nuvio.app.features.settings
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -33,6 +34,12 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -242,10 +249,13 @@ internal fun SettingsNavigationRow(
     val iconSize = if (isTablet) 42.dp else 36.dp
     val verticalPadding = if (isTablet) 16.dp else 14.dp
     val horizontalPadding = if (isTablet) 20.dp else 16.dp
+    var focused by remember { mutableStateOf(false) }
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .onFocusChanged { focused = it.isFocused }
+            .border(if (focused) 2.dp else 0.dp, if (focused) tokens.colors.accent else Color.Transparent)
             .clickable(enabled = enabled, onClick = onClick)
             .padding(horizontal = horizontalPadding, vertical = verticalPadding)
             .alpha(if (enabled) NuvioTokens.Opacity.visible else tokens.opacity.medium),
@@ -322,10 +332,13 @@ internal fun SettingsSwitchRow(
     val tokens = MaterialTheme.nuvio
     val verticalPadding = if (isTablet) 16.dp else 14.dp
     val horizontalPadding = if (isTablet) 20.dp else 16.dp
+    var focused by remember { mutableStateOf(false) }
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .onFocusChanged { focused = it.isFocused }
+            .border(if (focused) 2.dp else 0.dp, if (focused) tokens.colors.accent else Color.Transparent)
             .clickable(enabled = enabled) { onCheckedChange(!checked) }
             .padding(horizontal = horizontalPadding, vertical = verticalPadding),
         horizontalArrangement = Arrangement.Start,
@@ -357,7 +370,7 @@ internal fun SettingsSwitchRow(
             checked = checked,
             onCheckedChange = onCheckedChange,
             enabled = enabled,
-            modifier = Modifier.padding(start = 4.dp),
+            modifier = Modifier.focusProperties { canFocus = false }.padding(start = 4.dp),
             colors = SwitchDefaults.colors(
                 checkedThumbColor = tokens.colors.onAccent,
                 checkedTrackColor = tokens.colors.accent,

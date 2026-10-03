@@ -1,0 +1,4 @@
+<resources>
+    <string name="vpn_android_title">Nuvio WireGuard VPN</string>
+    <string name="vpn_android_notification">VPN servisi açık. Bağlantı ve trafik korumasını kontrol etmek için Nuvio’yu açın.</string>
+</resources>

@@ -1,0 +1,10 @@
+WireGuard Android tunnel library: com.wireguard.android:tunnel:1.0.20260102
+Copyright WireGuard LLC and the respective upstream contributors.
+https://git.zx2c4.com/wireguard-android/
+https://repo.maven.apache.org/maven2/com/wireguard/android/tunnel/1.0.20260102/
+License: Apache-2.0; native wireguard-go: MIT; Go runtime: BSD-3-Clause.
+The upstream library is unmodified. Nuvio's foreground service, encrypted profile
+store and torrent policy are implemented separately in features/vpn.
+https://github.com/WireGuard/wireguard-go
+https://github.com/golang/go
+Bundled license texts are alongside this file.

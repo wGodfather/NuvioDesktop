@@ -2,5 +2,16 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SYSTEM_EXEMPTED" />
+    <application>
+        <service android:name="com.nuvio.app.features.vpn.NuvioWireGuardService"
+            android:permission="android.permission.BIND_VPN_SERVICE"
+            android:exported="false" android:stopWithTask="false"
+            android:process=":nuvio_vpn"
+            android:foregroundServiceType="systemExempted">
+            <intent-filter><action android:name="android.net.VpnService" /></intent-filter>
+            <meta-data android:name="android.net.VpnService.SUPPORTS_ALWAYS_ON" android:value="true" />
+        </service>
+    </application>
 
 </manifest>

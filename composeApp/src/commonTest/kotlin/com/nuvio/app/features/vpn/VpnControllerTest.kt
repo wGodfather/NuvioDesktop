@@ -30,6 +30,7 @@ class VpnControllerTest {
         override suspend fun status(): VpnProtection { exception?.let { throw it }; return protection }
         override suspend fun setup() { events += "setup" }
         override suspend fun importProfile() { events += "import" }
+        override suspend fun importProfileText(text: String) { events += "import-text" }
         override suspend fun deleteProfile() { events += "delete"; protection = protection.copy(profilePresent = false) }
         override suspend fun connect(): VpnProtection {
             events += "connect"; exception?.let { throw it }
@@ -161,5 +162,31 @@ class VpnControllerTest {
         controller.setEnabled(true); backend.protection = VpnProtection(VpnStatus.Blocked, true); controller.refresh()
         assertTrue(controller.shouldReconnect())
         controller.disconnect(); assertFalse(controller.shouldReconnect())
+    }
+
+    @Test fun lostProtectionStopsPreviouslyAuthorizedMotorsEvenAfterARejectedStart() = runBlocking<Unit> {
+        val prefs = Preferences(); val backend = Backend(); val controller = VpnController(prefs, backend)
+        controller.setEnabled(true); controller.withTorrentPermission { }; backend.events.clear()
+        backend.protection = VpnProtection(VpnStatus.Blocked, true)
+        assertFailsWith<VpnRequiredException> { controller.withTorrentPermission { } }
+        controller.refresh()
+        assertEquals(listOf("stop"), backend.events)
+    }
+
+    @Test fun nativeStatusFailureStopsAuthorizedTrafficAndRedactsDetails() = runBlocking<Unit> {
+        val prefs = Preferences(); val backend = Backend(); val controller = VpnController(prefs, backend)
+        controller.setEnabled(true); controller.withTorrentPermission { }; backend.events.clear()
+        backend.exception = Exception("secret profile")
+        controller.refresh()
+        assertEquals(listOf("stop"), backend.events)
+        assertEquals(VpnStatus.Blocked, controller.state.value.status)
+        assertEquals("OPERATION_FAILED", controller.state.value.errorCode)
+    }
+
+    @Test fun textImportStopsMotorsAndHoldsBeforeReplacingProfile() = runBlocking<Unit> {
+        val prefs = Preferences(); val backend = Backend(); val controller = VpnController(prefs, backend)
+        controller.setEnabled(true); backend.events.clear(); controller.importProfileText("private profile")
+        assertEquals(listOf("stop", "hold", "import-text"), backend.events)
+        assertTrue(prefs.enabledValue)
     }
 }

@@ -86,6 +86,8 @@ open class MainActivity : AppCompatActivity() {
         SentrySettingsStorage.initialize(applicationContext)
         SentryInitializer.start(application)
         super.onCreate(savedInstanceState)
+        com.nuvio.app.features.vpn.VpnPlatform.initialize(applicationContext)
+        com.nuvio.app.features.vpn.AndroidVpnUi.bind(this)
         window.setBackgroundDrawableResource(R.color.nuvio_background)
         pipRemoteActionReceiver = PipRemoteActionReceiver.register(this)
         SyncClientIdentityStorage.initialize(applicationContext)
@@ -170,6 +172,7 @@ open class MainActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
+        com.nuvio.app.features.vpn.AndroidVpnUi.unbind(this)
         EpisodeReleaseNotificationPlatform.unbindActivity(this)
         val receiver = pipRemoteActionReceiver
         if (receiver != null) {

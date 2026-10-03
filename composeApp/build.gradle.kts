@@ -528,7 +528,10 @@ val desktopReleaseVersionCode = (
     ?.takeIf { it.isNotBlank() }
     ?.toIntOrNull()
     ?: 1
-val desktopReleasePackageVersion = jpackageCompatibleVersion(desktopReleaseVersionName)
+val desktopReleasePackageVersion = if (System.getProperty("os.name").contains("win", ignoreCase = true)) {
+    jpackageCompatibleVersion(providers.gradleProperty("nuvio.windows.msiVersion").orNull
+        ?: desktopVersionProps.getProperty("WINDOWS_MSI_VERSION") ?: desktopReleaseVersionName)
+} else jpackageCompatibleVersion(desktopReleaseVersionName)
 val windowsMsiUpgradeUuid = "395990ee-9b8a-3548-922c-e7a23a495b8d"
 val iosDistribution = (
     providers.gradleProperty("nuvio.ios.distribution").orNull
@@ -1223,6 +1226,7 @@ kotlin {
                 implementation(libs.androidx.activity.compose)
                 implementation(libs.androidx.core.splashscreen)
                 implementation(libs.androidx.work.runtime)
+                implementation("com.wireguard.android:tunnel:1.0.20260102")
                 implementation(libs.coil.gif)
                 implementation("androidx.recyclerview:recyclerview:1.4.0")
                 implementation("com.squareup.okhttp3:okhttp:4.12.0")
@@ -1490,6 +1494,16 @@ fun publishWindowsMsiOutput(release: Boolean) {
     if (sourceMsi.canonicalFile != finalMsi.canonicalFile) {
         sourceMsi.copyTo(finalMsi, overwrite = true)
     }
+
+    providers.exec {
+        commandLine("powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File",
+            rootProject.file(".github/scripts/patch-vpn-msi.ps1").absolutePath, "-Msi", finalMsi.absolutePath,
+            "-Helper", layout.buildDirectory.file("native/vpn/NuvioVpn.exe").get().asFile.absolutePath)
+    }.result.get().assertNormalExitValue()
+    providers.exec {
+        commandLine("powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File",
+            rootProject.file(".github/scripts/sign-vpn-artifact.ps1").absolutePath, "-Path", finalMsi.absolutePath)
+    }.result.get().assertNormalExitValue()
 
     logger.lifecycle("Windows MSI artifact: ${finalMsi.absolutePath}")
     publishWindowsMsiArtifact(finalMsi)

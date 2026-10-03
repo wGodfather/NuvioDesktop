@@ -39,6 +39,9 @@ namespace NuvioVpn {
                 if (args.Length == 2 && args[0] == "install") { RequireAdmin(); Install(new SecurityIdentifier(args[1])); return 0; }
                 if (args.Length == 1 && args[0] == "recover") { RequireAdmin(); Recover(false); return 0; }
                 if (args.Length == 1 && args[0] == "uninstall") { RequireAdmin(); Recover(true); return 0; }
+                if (args.Length == 1 && args[0].StartsWith("installer-", StringComparison.Ordinal)) {
+                    RequireAdmin(); InstallerMaintenance.Run(args[0]); return 0;
+                }
                 if (args.Length == 1 && args[0] == "self-test") return NativeTests.Run();
                 if (args.Length == 1 && args[0] == "firewall-smoke-test") {
                     RequireAdmin(); return NativeTests.FirewallSmokeTest();
@@ -132,7 +135,7 @@ namespace NuvioVpn {
                 current = Path.GetDirectoryName(current);
             }
         }
-        static void ProtectDirectory(string path, bool usersRead) {
+        internal static void ProtectDirectory(string path, bool usersRead) {
             var acl = new DirectorySecurity(); acl.SetAccessRuleProtection(true, false);
             acl.SetOwner(new SecurityIdentifier(WellKnownSidType.BuiltinAdministratorsSid, null));
             foreach (WellKnownSidType sid in new[] { WellKnownSidType.LocalSystemSid, WellKnownSidType.BuiltinAdministratorsSid })
@@ -142,14 +145,14 @@ namespace NuvioVpn {
                 FileSystemRights.ReadAndExecute, InheritanceFlags.ContainerInherit | InheritanceFlags.ObjectInherit, PropagationFlags.None, AccessControlType.Allow));
             Directory.SetAccessControl(path, acl);
         }
-        static void ProtectFile(string path) {
+        internal static void ProtectFile(string path, bool usersRead = true) {
             // CopyFile may copy the user's source DACL. Never let a cached binary's owner or
             // explicit write permission survive installation into the SYSTEM service directory.
             var acl = new FileSecurity(); acl.SetAccessRuleProtection(true, false);
             acl.SetOwner(new SecurityIdentifier(WellKnownSidType.BuiltinAdministratorsSid, null));
             foreach (WellKnownSidType sid in new[] { WellKnownSidType.LocalSystemSid, WellKnownSidType.BuiltinAdministratorsSid })
                 acl.AddAccessRule(new FileSystemAccessRule(new SecurityIdentifier(sid, null), FileSystemRights.FullControl, AccessControlType.Allow));
-            acl.AddAccessRule(new FileSystemAccessRule(new SecurityIdentifier(WellKnownSidType.BuiltinUsersSid, null),
+            if (usersRead) acl.AddAccessRule(new FileSystemAccessRule(new SecurityIdentifier(WellKnownSidType.BuiltinUsersSid, null),
                 FileSystemRights.ReadAndExecute, AccessControlType.Allow));
             File.SetAccessControl(path, acl);
         }
@@ -188,7 +191,7 @@ namespace NuvioVpn {
                 if (name.StartsWith("TorrServer", StringComparison.OrdinalIgnoreCase)) throw new VpnError("TORRENT_STILL_RUNNING");
             }
         }
-        static void Recover(bool uninstall) {
+        internal static void Recover(bool uninstall) {
             AssertNoTorrentProcesses(); StopService(ServiceName); StopService("WireGuardTunnel$" + TunnelName);
             using (var firewall = new Firewall()) firewall.Release();
             if (File.Exists(ArmedFile)) File.Delete(ArmedFile);

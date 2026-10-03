@@ -27,6 +27,7 @@ internal class NuvioEngineDownloadSession(private val context: Context) : Androi
     private var streamId: String? = null
 
     override suspend fun prepare(item: DownloadItem): AndroidTorrentDownloadRoute = withContext(Dispatchers.IO) {
+        com.nuvio.app.features.vpn.VpnPlatform.initialize(context.applicationContext)
         check(engine == null)
         val key = MessageDigest.getInstance("SHA-256").digest(item.fileName.toByteArray())
             .joinToString("") { "%02x".format(it) }
@@ -36,16 +37,19 @@ internal class NuvioEngineDownloadSession(private val context: Context) : Androi
         check(cache.isDirectory || cache.mkdirs()) { "Cannot create torrent cache directory" }
         P2pSettingsRepository.ensureLoaded()
         val settings = P2pSettingsRepository.uiState.value
-        val activeEngine = NuvioEngine.create(buildNuvioEngineConfig(
+        val activeEngine = com.nuvio.app.features.vpn.VpnPlatform.controller().withTorrentPermission { NuvioEngine.create(buildNuvioEngineConfig(
             stateDirectory = state,
             cacheDirectory = cache,
             uploadEnabled = settings.enableUpload,
             torrentProfile = settings.torrentProfile,
             diskCacheCapacityBytes = settings.cacheSize.bytes,
-        )).also { engine = it }
+        )).also {
+            engine = it
+            com.nuvio.app.features.vpn.AndroidVpnTraffic.register(it) { it.shutdown() }
+        } }
         val magnet = item.sourceUrl.takeIf { it.startsWith("magnet:", ignoreCase = true) }
             ?: buildP2pMagnetUri(checkNotNull(item.p2pInfoHash) { "Torrent hash is missing" }, item.p2pTrackers)
-        val torrentId = activeEngine.addMagnet(magnet)
+        val torrentId = com.nuvio.app.features.vpn.VpnPlatform.controller().withTorrentPermission { activeEngine.addMagnet(magnet) }
         val stream = activeEngine.prepareStream(
             torrentId = torrentId,
             fileIndex = item.p2pFileIdx,
@@ -62,7 +66,7 @@ internal class NuvioEngineDownloadSession(private val context: Context) : Androi
             streamId?.let { activeEngine.stopStream(it) }
         } finally {
             streamId = null
-            activeEngine.shutdown()
+            com.nuvio.app.features.vpn.AndroidVpnTraffic.stop(activeEngine)
         }
     }
 }

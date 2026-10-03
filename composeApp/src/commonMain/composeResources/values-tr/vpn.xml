@@ -1,4 +1,7 @@
 <resources>
+    <string name="vpn_android_license_title">Android için WireGuard</string>
+    <string name="vpn_android_license_body">Android, resmî WireGuard tünel kütüphanesini ve kullanıcı alanı motorunu kullanır. Kütüphane lisansı ve kaynak bağlantıları uygulamaya dahildir.</string>
+    <string name="vpn_android_license_label">Apache-2.0 / MIT / BSD-3-Clause</string>
     <string name="vpn_page_title">Ağ ve VPN</string>
     <string name="vpn_root_description">İsteğe bağlı WireGuard bağlantısı ve torrent koruması.</string>
     <string name="vpn_enable">VPN kullan</string>
@@ -14,7 +17,7 @@
     <string name="vpn_profile_present">Bağlantı profili güvenli olarak saklandı</string>
     <string name="vpn_profile_missing">Önce bir WireGuard bağlantı profili içe aktarın.</string>
     <string name="vpn_setup">VPN bileşenini kur</string>
-    <string name="vpn_setup_description">Windows yönetici izni isteyecek. Diğer VPN uygulamaları kaldırılmaz.</string>
+    <string name="vpn_setup_description">Android’de sistemin VPN iznini, Windows’ta yönetici iznini onaylayın.</string>
     <string name="vpn_import">Bağlantı profilini içe aktar</string>
     <string name="vpn_import_description">Torrent kullanımını destekleyen sağlayıcınızın .conf dosyasını seçin.</string>
     <string name="vpn_connect">Bağlan / yeniden dene</string>
@@ -22,7 +25,11 @@
     <string name="vpn_disconnect_description">İndirmeler duraklar. Yeniden bağlanana veya korumayı kapatana kadar internet erişimi engellenir.</string>
     <string name="vpn_auto_connect">Nuvio açıldığında bağlan</string>
     <string name="vpn_delete">Kayıtlı profili sil</string>
-    <string name="vpn_scope">Windows deneme sürümü: VPN bu bilgisayarın internet trafiğini kapsar. Bağlantı koparsa diğer uygulamaların interneti de engellenebilir. Yerel ağ cihazlarına erişim etkilenebilir.</string>
+    <string name="vpn_scope">VPN bu cihazın internet trafiğini kapsar. Koruma diğer uygulamaların internetini de engelleyebilir. Yerel ağ cihazlarına erişim etkilenebilir.</string>
+    <string name="vpn_system_settings">Android VPN ayarları</string>
+    <string name="vpn_lockdown_description">Korumalı torrent için Android ayarlarında Nuvio’nun Her zaman açık VPN ve VPN olmadan bağlantıları engelle seçeneklerini açın. Buradan VPN’i kapatmadan önce ikisini de sistem ayarlarından kapatın. Bazı TV’lerde bu seçenekler yoktur; bu cihazlarda korumalı torrent engelli kalır.</string>
+    <string name="vpn_manual">Bağlantı profilini gir</string>
+    <string name="vpn_manual_description">TV’de dosya seçici yoksa sağlayıcınızın WireGuard ayarlarını girin. Anahtarlar bu cihazda kalır. Sunucu ve DNS için sayısal IP adresleri gerekir.</string>
     <string name="vpn_security_note">VPN açıkken torrentler korumalı bağlantıyı bekler. VPN virüs taraması yapmaz ve tam anonimlik garanti etmez. Bir VPN sunucusu veya sağlayıcı profili gerekir.</string>
     <string name="vpn_preview_note">Deneysel özellik. Genel yayından önce gerçek sunucu ve bağlantı kesintisi testleri tamamlanmalıdır.</string>
     <string name="vpn_disable_title">VPN koruması kapatılsın mı?</string>

@@ -1,4 +1,7 @@
 <resources>
+    <string name="vpn_android_license_title">WireGuard for Android</string>
+    <string name="vpn_android_license_body">Android uses the official WireGuard tunnel library and userspace backend. The library license and upstream source references are included with this app.</string>
+    <string name="vpn_android_license_label">Apache-2.0 / MIT / BSD-3-Clause</string>
     <string name="vpn_page_title">Network and VPN</string>
     <string name="vpn_root_description">Optional WireGuard connection and torrent protection.</string>
     <string name="vpn_enable">Use VPN</string>
@@ -14,7 +17,7 @@
     <string name="vpn_profile_present">Connection profile saved securely</string>
     <string name="vpn_profile_missing">Import a WireGuard connection profile first.</string>
     <string name="vpn_setup">Set up VPN component</string>
-    <string name="vpn_setup_description">Windows will request administrator permission. Other VPNs are not removed.</string>
+    <string name="vpn_setup_description">Approve the system VPN permission on Android, or administrator permission on Windows.</string>
     <string name="vpn_import">Import connection profile</string>
     <string name="vpn_import_description">Select a .conf file from a VPN provider that supports torrents.</string>
     <string name="vpn_connect">Connect / retry</string>
@@ -22,7 +25,11 @@
     <string name="vpn_disconnect_description">Downloads pause and internet access remains blocked until reconnecting or turning protection off.</string>
     <string name="vpn_auto_connect">Connect when Nuvio starts</string>
     <string name="vpn_delete">Delete saved profile</string>
-    <string name="vpn_scope">Windows preview: VPN covers this computer’s internet traffic. A connection failure can block internet access in other apps too. Local network devices may become unavailable.</string>
+    <string name="vpn_scope">VPN covers this device’s internet traffic. Protection can block internet access in other apps too. Local network devices may become unavailable.</string>
+    <string name="vpn_system_settings">Android VPN settings</string>
+    <string name="vpn_lockdown_description">For protected torrents, enable Always-on VPN and Block connections without VPN for Nuvio in Android settings. Turn both off there before disabling VPN here. Some TVs do not provide these controls; protected torrents stay blocked on those devices.</string>
+    <string name="vpn_manual">Enter a connection profile</string>
+    <string name="vpn_manual_description">Use your provider’s WireGuard settings when a file picker is unavailable on TV. Keys stay on this device. The server and DNS must use numeric IP addresses.</string>
     <string name="vpn_security_note">When VPN is enabled, torrents must wait for a protected connection. VPN does not scan files for malware or guarantee anonymity. A VPN server or provider profile is required.</string>
     <string name="vpn_preview_note">Experimental feature. Real-server and connection-failure validation must be completed before a public release.</string>
     <string name="vpn_disable_title">Turn VPN protection off?</string>

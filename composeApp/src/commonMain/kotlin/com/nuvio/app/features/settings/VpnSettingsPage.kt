@@ -29,6 +29,7 @@ internal fun LazyListScope.vpnSettingsContent(isTablet: Boolean) {
         val scope = rememberCoroutineScope()
         var confirmDisable by remember { mutableStateOf(false) }
         var confirmDelete by remember { mutableStateOf(false) }
+        var editProfile by remember { mutableStateOf(false) }
         LaunchedEffect(Unit) { controller.refresh() }
         val statusLabel = when (state.status) {
             VpnStatus.Off -> Res.string.vpn_status_off
@@ -62,6 +63,9 @@ internal fun LazyListScope.vpnSettingsContent(isTablet: Boolean) {
                             "FULL_TUNNEL_REQUIRED" -> Res.string.vpn_error_full_tunnel
                             "RECOVERY_REQUIRED" -> Res.string.vpn_error_recovery
                             "OTHER_USER_VPN" -> Res.string.vpn_error_other_user
+                            "LOCKDOWN_REQUIRED", "SYSTEM_VPN_CONTROLS", "VPN_SETTINGS_UNAVAILABLE" -> Res.string.vpn_lockdown_description
+                            "VPN_PERMISSION_REQUIRED" -> Res.string.vpn_status_setup
+                            "PROFILE_PICKER_UNAVAILABLE" -> Res.string.vpn_manual_description
                             else -> Res.string.vpn_error_generic
                         }
                         Text(stringResource(error), color = MaterialTheme.colorScheme.error)
@@ -72,10 +76,20 @@ internal fun LazyListScope.vpnSettingsContent(isTablet: Boolean) {
                         description = stringResource(Res.string.vpn_setup_description), isTablet = isTablet,
                         enabled = !state.busy && state.status !in setOf(VpnStatus.Connected, VpnStatus.Connecting),
                         onClick = { scope.launch { controller.setup() } })
+                    if (controller.requiresSystemLockdown) {
+                        SettingsNavigationRow(title = stringResource(Res.string.vpn_system_settings),
+                            description = stringResource(Res.string.vpn_lockdown_description), isTablet = isTablet,
+                            enabled = !state.busy, onClick = { scope.launch { controller.openSystemSettings() } })
+                    }
                     SettingsNavigationRow(title = stringResource(Res.string.vpn_import),
                         description = stringResource(Res.string.vpn_import_description), isTablet = isTablet,
                         enabled = !state.busy && state.status != VpnStatus.SetupRequired,
                         onClick = { scope.launch { controller.importProfile() } })
+                    if (controller.supportsTextImport) {
+                        SettingsNavigationRow(title = stringResource(Res.string.vpn_manual),
+                            description = stringResource(Res.string.vpn_manual_description), isTablet = isTablet,
+                            enabled = !state.busy, onClick = { editProfile = true })
+                    }
                     SettingsNavigationRow(title = stringResource(Res.string.vpn_connect), description = null,
                         isTablet = isTablet, enabled = !state.busy && state.enabled && state.profilePresent,
                         onClick = { scope.launch { controller.connect() } })
@@ -98,6 +112,10 @@ internal fun LazyListScope.vpnSettingsContent(isTablet: Boolean) {
             Text(stringResource(Res.string.vpn_preview_note), modifier = Modifier.padding(top = 8.dp),
                 style = MaterialTheme.typography.bodyMedium)
         }
+        if (editProfile) VpnProfileDialog(onDismiss = { editProfile = false }, onImport = { profile ->
+            editProfile = false
+            scope.launch { controller.importProfileText(profile) }
+        })
         if (confirmDisable || confirmDelete) {
             val delete = confirmDelete
             AlertDialog(onDismissRequest = { confirmDisable = false; confirmDelete = false },

@@ -18,6 +18,8 @@ $sources = (Get-ChildItem -LiteralPath (Join-Path $repo 'composeApp/src/desktopM
 if ($LASTEXITCODE -ne 0) { throw 'VPN helper compilation failed.' }
 & (Join-Path $output 'NuvioVpn.exe') self-test
 if ($LASTEXITCODE -ne 0) { throw 'VPN helper self-tests failed.' }
+& (Join-Path $PSScriptRoot 'sign-vpn-artifact.ps1') -Path (Join-Path $output 'NuvioVpn.exe')
+if ($LASTEXITCODE -ne 0) { throw 'VPN helper signing failed.' }
 $msi = Join-Path $output 'wireguard-amd64-1.1.1.msi'
 $expectedMsi = '7BFED60AD61B785C914B38B61555A975488E1D3EC472DBFB2FCDF498FCA75242'
 if (-not (Test-Path -LiteralPath $msi)) {
