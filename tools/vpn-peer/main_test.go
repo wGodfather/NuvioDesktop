@@ -11,6 +11,7 @@ import (
 	"net/netip"
 	"os"
 	"os/exec"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -64,11 +65,15 @@ func TestEncryptedIPv4IPv6AndDNS(t *testing.T) {
 	}
 	var enrolled struct {
 		PublicKey string `json:"publicKey"`
+		Port      int    `json:"port"`
 	}
 	err = json.NewDecoder(reply.Body).Decode(&enrolled)
 	reply.Body.Close()
 	if err != nil {
 		t.Fatal(err)
+	}
+	if enrolled.Port < 1 || enrolled.Port > 65535 {
+		t.Fatal("Peer must report its actual UDP port")
 	}
 	pub, err := base64.StdEncoding.DecodeString(enrolled.PublicKey)
 	if err != nil {
@@ -80,7 +85,7 @@ func TestEncryptedIPv4IPv6AndDNS(t *testing.T) {
 	}
 	dev := device.NewDevice(tun, conn.NewDefaultBind(), device.NewLogger(device.LogLevelSilent, ""))
 	defer dev.Close()
-	err = dev.IpcSet("private_key=" + hex.EncodeToString(key.Bytes()) + "\npublic_key=" + hex.EncodeToString(pub) + "\nendpoint=127.0.0.1:51820\nallowed_ip=0.0.0.0/0\nallowed_ip=::/0\n")
+	err = dev.IpcSet("private_key=" + hex.EncodeToString(key.Bytes()) + "\npublic_key=" + hex.EncodeToString(pub) + "\nendpoint=127.0.0.1:" + strconv.Itoa(enrolled.Port) + "\nallowed_ip=0.0.0.0/0\nallowed_ip=::/0\n")
 	if err != nil {
 		t.Fatal(err)
 	}

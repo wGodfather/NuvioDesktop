@@ -17,6 +17,8 @@ import (
 	"net/http"
 	"net/netip"
 	"os"
+	"strconv"
+	"strings"
 	"sync/atomic"
 	"time"
 
@@ -48,8 +50,23 @@ func main() {
 	must(err)
 	dev := device.NewDevice(tun, conn.NewDefaultBind(), device.NewLogger(device.LogLevelSilent, ""))
 	defer dev.Close()
-	must(dev.IpcSet("private_key=" + hex.EncodeToString(key.Bytes()) + "\nlisten_port=51820\n"))
+	// Let the OS allocate an available port; Windows runners may reserve 51820.
+	must(dev.IpcSet("private_key=" + hex.EncodeToString(key.Bytes()) + "\nlisten_port=0\n"))
 	must(dev.Up())
+	configuration, err := dev.IpcGet()
+	must(err)
+	port := 0
+	for _, line := range strings.Split(configuration, "\n") {
+		if value, found := strings.CutPrefix(line, "listen_port="); found {
+			port, err = strconv.Atoi(value)
+			must(err)
+		}
+	}
+	// The UAPI response contains a private key: never log it.
+	configuration = ""
+	if port < 1 || port > 65535 {
+		log.Fatal("Peer UDP port unavailable")
+	}
 	control := http.NewServeMux()
 	control.HandleFunc("/enroll", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "POST" || enrollments.Load() >= 1 {
@@ -71,7 +88,7 @@ func main() {
 			return
 		}
 		enrollments.Add(1)
-		response := map[string]any{"publicKey": base64.StdEncoding.EncodeToString(key.PublicKey().Bytes()), "port": 51820, "fixture": fixture}
+		response := map[string]any{"publicKey": base64.StdEncoding.EncodeToString(key.PublicKey().Bytes()), "port": port, "fixture": fixture}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(response)
 	})
