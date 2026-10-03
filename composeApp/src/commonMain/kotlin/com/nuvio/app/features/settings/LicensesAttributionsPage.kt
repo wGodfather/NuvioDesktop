@@ -138,7 +138,7 @@ private fun LicensesAttributionsBody(
                 isTablet = isTablet,
             )
             if (com.nuvio.app.features.vpn.VpnPlatform.controller().state.value.supported) {
-                val androidVpn = com.nuvio.app.features.vpn.VpnPlatform.controller().requiresSystemLockdown
+                val androidVpn = com.nuvio.app.features.vpn.VpnPlatform.controller().supportsTextImport
                 LicenseRow(item = LicenseItem(titleRes = if (androidVpn) Res.string.vpn_android_license_title else Res.string.vpn_license_title,
                     bodyRes = if (androidVpn) Res.string.vpn_android_license_body else Res.string.vpn_license_body,
                     licenseRes = if (androidVpn) Res.string.vpn_android_license_label else Res.string.vpn_license_label,

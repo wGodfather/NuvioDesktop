@@ -51,7 +51,7 @@ class VpnAndroidIntegrationTest {
         assertFalse(VpnPlatform.controller().state.value.enabled)
     }
 
-    @Test fun realTunWithoutSystemLockdownNeverAuthorizesTorrentAndProfileIsEncrypted() = runBlocking {
+    @Test fun realTunWithoutHandshakeNeverAuthorizesTorrentAndProfileIsEncrypted() = runBlocking {
         val controller = VpnPlatform.controller()
         if (Build.VERSION.SDK_INT < 29) { assertFalse(controller.state.value.supported); return@runBlocking }
         val privateKey = KeyPair().privateKey.toBase64()
@@ -67,8 +67,8 @@ class VpnAndroidIntegrationTest {
         }
         try {
             controller.setEnabled(true)
-            assertEquals(VpnStatus.Blocked, controller.state.value.status)
-            assertEquals("LOCKDOWN_REQUIRED", controller.state.value.errorCode)
+            assertTrue(controller.state.value.status in setOf(VpnStatus.Blocked, VpnStatus.Connecting))
+            assertNotNull("Main process must be pinned to the VPN network", context.getSystemService(ConnectivityManager::class.java).boundNetworkForProcess)
             var executed = false
             try { controller.withTorrentPermission { executed = true } } catch (_: VpnRequiredException) { }
             assertFalse(executed)

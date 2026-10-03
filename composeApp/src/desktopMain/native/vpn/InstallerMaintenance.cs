@@ -5,7 +5,7 @@ using System.ServiceProcess;
 
 namespace NuvioVpn {
     // MSI deferred SYSTEM actions. Optional VPN is never installed by a fresh app install.
-    // Rollback snapshots contain only protected binaries and machine-encrypted profile data.
+    // Rollback snapshots contain only protected binaries and SYSTEM-encrypted profile data.
     static class InstallerMaintenance {
         static string Backup { get { return Path.Combine(Program.Root, "InstallerRollback"); } }
         static readonly string[] Files = { "NuvioVpn.exe", "wireguard.exe", "wg.exe", "State/owner", "State/NuvioVpn.conf.dpapi", "State/armed" };

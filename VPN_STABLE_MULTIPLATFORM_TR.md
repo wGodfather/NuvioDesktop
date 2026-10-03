@@ -90,6 +90,13 @@ incelenir; native servisle yarışan ikinci bir sahip oluşturulmaz. Root gerekm
 
 Android'de VPN dışı bağlantıları işletim sistemi düzeyinde engelleme seçeneği
 kullanıcının always-on/lockdown ayarıdır; normal uygulama bunu sessizce zorlayamaz.
+3 Ekim uygulama kararı: lockdown VPN uygulamasının UID'sini muaf tuttuğu için
+Nuvio'nun kendi torrent korumasının temeli olamaz. WireGuard servisi ayrı süreçte
+çalışır; ana sürecin yeni soket/DNS işlemleri açıkça VPN Network'üne bağlanır.
+Mevcut oturumlar geçişten önce kapanır; kaybolan VPN Network bağı fiziksel ağa
+geri dönüş için temizlenmez. Always-on/lockdown diğer uygulamalar için isteğe
+bağlı ek koruma olur; bu ayarı göstermeyen TV'de de aynı Nuvio bağlama/sızıntı
+testleri geçmelidir. Başarısız bağlama durumunda torrent başlamaz.
 Peer kaybında TUN'un kalması ile VPN servisinin/izninin tamamen kaldırılması
 ayrı test edilir. Root olmadan her OEM TV'de kesintisiz bloklama varsayılmaz.
 Güçlü koruma gereksinimi karşılanamayan cihazda korumalı torrent başlatılmaz;

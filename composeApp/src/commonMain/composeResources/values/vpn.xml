@@ -27,7 +27,7 @@
     <string name="vpn_delete">Delete saved profile</string>
     <string name="vpn_scope">VPN covers this device’s internet traffic. Protection can block internet access in other apps too. Local network devices may become unavailable.</string>
     <string name="vpn_system_settings">Android VPN settings</string>
-    <string name="vpn_lockdown_description">For protected torrents, enable Always-on VPN and Block connections without VPN for Nuvio in Android settings. Turn both off there before disabling VPN here. Some TVs do not provide these controls; protected torrents stay blocked on those devices.</string>
+    <string name="vpn_lockdown_description">Nuvio keeps its own torrents on the VPN network. For additional protection of other apps, enable Always-on VPN and Block connections without VPN in Android settings, if available. Turn those options off before disabling VPN here. Some TVs do not provide these system controls.</string>
     <string name="vpn_manual">Enter a connection profile</string>
     <string name="vpn_manual_description">Use your provider’s WireGuard settings when a file picker is unavailable on TV. Keys stay on this device. The server and DNS must use numeric IP addresses.</string>
     <string name="vpn_security_note">When VPN is enabled, torrents must wait for a protected connection. VPN does not scan files for malware or guarantee anonymity. A VPN server or provider profile is required.</string>

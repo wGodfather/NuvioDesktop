@@ -12,8 +12,8 @@ Bu belge sürüm kabul raporudur; **kararlı yayın kabulü henüz verilmemişti
   çıkarılırken kod `32`, MSI `1.1.32` olmalı; görünen uygulama sürümü `0.1.30` kalır.
 - VPN varsayılan kapalıdır. Sağlayıcı profili gerekir; virüs taraması yapmaz.
 - Android'in normal kullanım alt sınırı değişmedi. Korumalı VPN için Android 10+
-  ve sistemde always-on/lockdown kontrolleri gereklidir. Bu kontrolleri sunmayan
-  TV'lerde korunmuş torrent bağlantısı etkinleşmez.
+  gerekir. Sistem always-on/lockdown ayarı diğer uygulamalar için isteğe bağlı
+  ek korumadır; Nuvio'nun kendi trafiği ayrı süreç ve açık Network bağıyla korunur.
 
 ## Uygulanan koruma
 
@@ -45,7 +45,7 @@ saklanır. Paylaşılan WireGuard sürücüsü ve diğer VPN servisleri kaldır�
 | Android host regresyonları | 52 test geçti | JNI ağı gerçek cihazda kullanılmadı |
 | Windows native helper | 23 test geçti | Yerel PC'de servis/firewall kurulmadı |
 | MSI action/Binary ekleme ve paket runtime hash'leri | Geçti | Kurulum/rollback henüz CI'de çalıştırılmadı |
-| Telefon/Android TV/Google TV emülatörleri | Bekliyor | Gerçek TUN ve D-pad testleri hazırlanıyor |
+| Telefon/Android TV/Google TV emülatörleri | İlk tur başarısız | IPC Message geri dönüşüm yarışı düzeltildi; tekrar bekleniyor |
 | Kontrollü peer, DNS/IPv6 ve fiziksel ağ kaçışı | Bekliyor | Host testleri bu kapıyı kapatmaz |
 | 60 dakika/10 ağ değişimi, hız ölçümü | Bekliyor | Ölçüm yapılmadan hız iddiası yok |
 | Windows gerçek MSI lifecycle | Bekliyor | Önceki 1.1.30 paketinden yükseltme CI testi |
@@ -55,6 +55,14 @@ saklanır. Paylaşılan WireGuard sürücüsü ve diğer VPN servisleri kaldır�
 İlk yerel Robolectric çalıştırmasında 9 test Windows'un Türkçe sistem dilindeki
 Conscrypt `wındows` kitaplık adı hatası yüzünden çalışmadı. JVM test dili en/US
 olarak sabitlendiğinde 52 test geçti; test kabul şartları gevşetilmedi.
+
+Kaynak `23fcd0e1` ile Android CI `37099393638` dört emülatörde çalıştı. Servis
+Handler'ının coroutine içinde geri dönüştürülmüş Message nesnesini okuması
+replyTo değerini kaybettiriyor ve servisi çökertiyordu. Komut/id/replyTo artık
+Handler dönerken kopyalanıyor. SERVICE_LOST durumunda torrent kapısı açılmadı.
+Windows CI `37099393921` 86 testten mevcut eşzamanlı scraper testinde zaman
+aşımına uğradı; aynı kaynakla bir tekrar başlatıldı. Native izolasyon CI
+`37099395664` geçti. Başarısız testler geçti diye raporlanmaz.
 
 ## Yayın kapısı
 

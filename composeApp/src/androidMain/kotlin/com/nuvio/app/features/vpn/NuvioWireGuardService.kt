@@ -21,16 +21,20 @@ class NuvioWireGuardService : GoBackend.VpnService() {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val runtime by lazy { AndroidVpnTunnelRuntime(this) }
     private val commands = Messenger(Handler(Looper.getMainLooper()) { request ->
-        if (request.sendingUid == Process.myUid() && request.what == 1 && request.replyTo != null) scope.launch {
-            val response = Message.obtain(null, 1, request.arg1, 0)
+        // Handler recycles Message after this callback; copy fields before dispatching.
+        val recipient = request.replyTo
+        val id = request.arg1
+        val command = request.data.getString("command") ?: ""
+        if (request.sendingUid == Process.myUid() && request.what == 1 && recipient != null) scope.launch {
+            val response = Message.obtain(null, 1, id, 0)
             response.data = Bundle().apply {
                 try {
-                    val result = runtime.command(request.data.getString("command") ?: "")
+                    val result = runtime.command(command)
                     putString("status", result.status.name); putBoolean("profile", result.profilePresent); putBoolean("protected", result.protected)
                 } catch (cancelled: CancellationException) { throw cancelled }
                 catch (error: Exception) { putString("error", (error as? VpnOperationException)?.code ?: "OPERATION_FAILED") }
             }
-            try { request.replyTo.send(response) } catch (_: RemoteException) { }
+            try { recipient.send(response) } catch (_: RemoteException) { }
         }
         true
     })
@@ -83,7 +87,6 @@ private class AndroidVpnTunnelRuntime(private val service: NuvioWireGuardService
             }
             "connect" -> {
                 if (!store.exists()) throw VpnOperationException("PROFILE_REQUIRED")
-                if (!service.isAlwaysOn || !service.isLockdownEnabled) throw VpnOperationException("LOCKDOWN_REQUIRED")
                 forwarding.set(false)
                 native.setState(tunnel, Tunnel.State.UP, store.load())
                 forwarding.set(true); startedAt = SystemClock.elapsedRealtime(); status()
@@ -99,7 +102,7 @@ private class AndroidVpnTunnelRuntime(private val service: NuvioWireGuardService
     }
     private fun status(): VpnProtection {
         val present = store.exists()
-        if (!present || !forwarding.get() || native.getState(tunnel) != Tunnel.State.UP || !service.isAlwaysOn || !service.isLockdownEnabled)
+        if (!present || !forwarding.get() || native.getState(tunnel) != Tunnel.State.UP)
             return VpnProtection(VpnStatus.Blocked, present)
         val config = store.load()
         val timestamp = native.getStatistics(tunnel).peer(config.peers.single().publicKey)?.latestHandshakeEpochMillis() ?: 0

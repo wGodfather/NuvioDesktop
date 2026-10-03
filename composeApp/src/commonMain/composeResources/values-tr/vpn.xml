@@ -27,7 +27,7 @@
     <string name="vpn_delete">Kayıtlı profili sil</string>
     <string name="vpn_scope">VPN bu cihazın internet trafiğini kapsar. Koruma diğer uygulamaların internetini de engelleyebilir. Yerel ağ cihazlarına erişim etkilenebilir.</string>
     <string name="vpn_system_settings">Android VPN ayarları</string>
-    <string name="vpn_lockdown_description">Korumalı torrent için Android ayarlarında Nuvio’nun Her zaman açık VPN ve VPN olmadan bağlantıları engelle seçeneklerini açın. Buradan VPN’i kapatmadan önce ikisini de sistem ayarlarından kapatın. Bazı TV’lerde bu seçenekler yoktur; bu cihazlarda korumalı torrent engelli kalır.</string>
+    <string name="vpn_lockdown_description">Nuvio kendi torrentlerini VPN ağına bağlı tutar. Diğer uygulamaları da korumak için Android ayarlarında varsa Her zaman açık VPN ve VPN olmadan bağlantıları engelle seçeneklerini açın. Buradan VPN’i kapatmadan önce bu seçenekleri kapatın. Bazı TV’lerde bu sistem ayarları bulunmaz.</string>
     <string name="vpn_manual">Bağlantı profilini gir</string>
     <string name="vpn_manual_description">TV’de dosya seçici yoksa sağlayıcınızın WireGuard ayarlarını girin. Anahtarlar bu cihazda kalır. Sunucu ve DNS için sayısal IP adresleri gerekir.</string>
     <string name="vpn_security_note">VPN açıkken torrentler korumalı bağlantıyı bekler. VPN virüs taraması yapmaz ve tam anonimlik garanti etmez. Bir VPN sunucusu veya sağlayıcı profili gerekir.</string>

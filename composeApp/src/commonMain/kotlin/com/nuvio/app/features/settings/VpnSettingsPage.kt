@@ -76,7 +76,7 @@ internal fun LazyListScope.vpnSettingsContent(isTablet: Boolean) {
                         description = stringResource(Res.string.vpn_setup_description), isTablet = isTablet,
                         enabled = !state.busy && state.status !in setOf(VpnStatus.Connected, VpnStatus.Connecting),
                         onClick = { scope.launch { controller.setup() } })
-                    if (controller.requiresSystemLockdown) {
+                    if (controller.supportsTextImport) {
                         SettingsNavigationRow(title = stringResource(Res.string.vpn_system_settings),
                             description = stringResource(Res.string.vpn_lockdown_description), isTablet = isTablet,
                             enabled = !state.busy, onClick = { scope.launch { controller.openSystemSettings() } })

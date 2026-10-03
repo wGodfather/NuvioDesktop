@@ -75,7 +75,7 @@ internal object AndroidVpnTraffic {
 internal class AndroidVpnBackend(private val context: Context, private val prefs: AndroidVpnPreferences) : VpnBackend {
     override val supported = Build.VERSION.SDK_INT >= 29 && com.nuvio.app.core.build.AppFeaturePolicy.downloadForegroundServiceEnabled
     override val supportsTextImport = true
-    override val requiresSystemLockdown = true
+    override val requiresSystemLockdown = false
     private val store by lazy { AndroidVpnProfileStore(context) }
     private val remote by lazy { AndroidVpnRemote(context) }
     private val connectivity by lazy { context.getSystemService(ConnectivityManager::class.java) }
