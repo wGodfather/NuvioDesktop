@@ -40,6 +40,21 @@ function AwaitConnected {
     do { $state = Request 'status'; if ($state -eq "STATE`tConnected`t1`t1") { return }; Start-Sleep -Milliseconds 500 } while ([DateTime]::UtcNow -lt $deadline)
     throw 'Controlled peer handshake/filter proof timed out.'
 }
+function AwaitHeldBroker {
+    $deadline = [DateTime]::UtcNow.AddSeconds(15)
+    do {
+        try {
+            $state = Request 'status'
+            if ($state -ne "STATE`tBlocked`t1`t0") { throw 'Restart lost the held policy.' }
+            return
+        } catch {
+            if ($_.Exception.Message -notmatch 'SETUP_REQUIRED') { throw }
+            if (ProbePhysical) { throw 'Physical network opened while waiting for broker IPC.' }
+        }
+        Start-Sleep -Milliseconds 200
+    } while ([DateTime]::UtcNow -lt $deadline)
+    throw 'Restarted broker IPC readiness timed out.'
+}
 $probeAddress = [Net.Dns]::GetHostAddresses('github.com') | Where-Object AddressFamily -eq InterNetwork | Select-Object -First 1
 $baseline = [Net.Sockets.TcpClient]::new()
 try {
@@ -85,6 +100,7 @@ try {
     }
     1..10 | ForEach-Object {
         Restart-Service NuvioVpnControl
+        AwaitHeldBroker
         Require ((Request 'status') -eq "STATE`tBlocked`t1`t0") "idle pipe restart $_ retains guard"
         Require (-not (ProbePhysical)) "idle pipe restart $_ blocks physical network"
     }
@@ -93,6 +109,7 @@ try {
     Stop-Process -Id $service.ProcessId -Force
     Require (-not (ProbePhysical)) 'abrupt broker death retains persistent guard'
     Start-Service NuvioVpnControl
+    AwaitHeldBroker
     Require ((Request 'status') -like "STATE`tBlocked`t1`t0") 'broker restart returns held policy'
     $null = Request 'connect'; AwaitConnected
     Require (((Http 'http://10.90.0.1:8765/probe') | ConvertFrom-Json).source -eq '10.90.0.2') 'encrypted data recovers after broker restart'
