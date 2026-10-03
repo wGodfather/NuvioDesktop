@@ -80,7 +80,9 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Failure injection database edit failed.' }
     $failureLog = Install $failedMsi '/i' 'forced-rollback' $true
     $failureText = Get-Content -LiteralPath $failureLog -Raw
-    Require ($failureText -match 'NuvioVpnForcedFailure returned actual error code' -and $failureText -match 'Rollback: NuvioVpnRollback') 'deferred failure invokes rollback'
+    Require ($failureText -match 'NuvioVpnForcedFailure returned actual error code' -and
+        $failureText -match 'CustomActionRollback\(Action=NuvioVpnRollback,' -and
+        $failureText -match 'Action ended .*RemoveExistingProducts\. Return value 1\.') 'post-removal deferred failure invokes rollback'
     Require ((Request 'status') -eq "STATE`tBlocked`t1`t0") 'rollback restores broker and guard'
     Require ((Get-FileHash $encryptedFile -Algorithm SHA256).Hash -eq $encryptedHash) 'rollback preserves encrypted profile'
     Require (-not (Probe)) 'rollback keeps protection'

@@ -16,7 +16,7 @@ try {
         "UPDATE ``Upgrade`` SET ``VersionMax``='$nextVersion' WHERE ``ActionProperty``='JP_UPGRADABLE_FOUND'",
         "UPDATE ``Upgrade`` SET ``VersionMin``='$nextVersion' WHERE ``ActionProperty``='JP_DOWNGRADABLE_FOUND'",
         "INSERT INTO ``CustomAction`` (``Action``, ``Type``, ``Source``, ``Target``) VALUES ('NuvioVpnForcedFailure', 3074, 'NuvioVpnMaintenance', 'installer-test-failure')",
-        "INSERT INTO ``InstallExecuteSequence`` (``Action``, ``Condition``, ``Sequence``) VALUES ('NuvioVpnForcedFailure', 'NOT (REMOVE=`"ALL`")', 6504)"
+        "INSERT INTO ``InstallExecuteSequence`` (``Action``, ``Condition``, ``Sequence``) VALUES ('NuvioVpnForcedFailure', 'NOT (REMOVE=`"ALL`")', 6580)"
     )) {
         $view = $database.OpenView($sql)
         try { $view.Execute() } finally { $view.Close(); [Runtime.InteropServices.Marshal]::FinalReleaseComObject($view) | Out-Null }
