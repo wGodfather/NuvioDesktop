@@ -112,10 +112,10 @@ jobs:
         if: always()
         run: |
           mkdir -p vpn-emulator-report
-          adb pull /sdcard/Android/data/com.wgodfather.nuvio.debug/files/vpn-qa vpn-emulator-report/ || true
-          adb shell getprop ro.build.fingerprint > vpn-emulator-report/fingerprint.txt || true
+          # test-vpn-android.sh already collected device files before shutdown.
+          # Do not overwrite that fingerprint with an offline adb result here.
           curl --silent --fail http://127.0.0.1:8765/metrics > vpn-emulator-report/peer-metrics.json || true
-          # Avoid logcat/bugreport: native protocol logs can contain endpoint details.
+          # Avoid full bugreport/profile files; UTP keeps individual test logcats.
       - uses: actions/upload-artifact@v4
         if: always()
         with:

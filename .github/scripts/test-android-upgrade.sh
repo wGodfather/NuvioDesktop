@@ -25,6 +25,11 @@ test "$before" = "$after"
 adb shell am start -W -n "$package/com.nuvio.app.MainActivity"
 sleep 3
 adb shell pidof "$package"
-adb shell dumpsys package "$package" | grep -E 'versionCode=31|versionName=0.1.30-alpha'
+expected_code=$(sed -n 's/^VERSION_CODE=//p' composeApp/Configuration/DesktopVersion.properties | tr -d '\r')
+package_info=$(adb shell dumpsys package "$package" | tr -d '\r')
+actual_code=$(printf '%s\n' "$package_info" | sed -n 's/^[[:space:]]*versionCode=\([0-9]*\).*/\1/p' | head -1)
+actual_name=$(printf '%s\n' "$package_info" | sed -n 's/^[[:space:]]*versionName=//p' | head -1)
+test "$actual_code" = "$expected_code"
+test "$actual_name" = "$RELEASE_VERSION"
 adb shell am force-stop "$package"
-echo 'PASS same fork certificate, signed 0.1.29 → 0.1.30-alpha / 31 install, data preservation and release launch'
+echo "PASS same fork certificate, signed 0.1.29 → $RELEASE_VERSION / $expected_code install, data preservation and release launch"
