@@ -14,7 +14,7 @@ func TestEncryptedTorrentFixtureTransport(t *testing.T) {
 	defer client.Close()
 	defer server.Close()
 	client.SetDeadline(time.Now().Add(5 * time.Second))
-	key := []byte("fixture-info-hash-20!")
+	key := []byte("fixture-info-hash-20")
 	result := make(chan error, 1)
 	go func() {
 		stream, err := receiveTorrentStream(server, key)

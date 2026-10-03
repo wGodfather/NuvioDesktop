@@ -64,7 +64,12 @@ class VpnAndroidIntegrationTest {
                 device.waitForIdle(1_000)
                 val button = device.findObject(positive)
                 if (button?.isFocused == true) { device.pressDPadCenter(); return@withContext true }
-                if (it % 2 == 0) device.pressDPadDown() else device.pressDPadRight()
+                val negative = device.findObject(By.res("android", "button2").pkg("com.android.vpndialogs"))
+                if (negative?.isFocused == true && button != null) {
+                    // TV places OK to the left; phone themes often place it right.
+                    if (button.visibleBounds.centerX() < negative.visibleBounds.centerX()) device.pressDPadLeft()
+                    else device.pressDPadRight()
+                } else device.pressDPadDown()
                 if (device.wait(Until.hasObject(By.res("android", "button1").pkg("com.android.vpndialogs").focused(true)), 1_000)) {
                     device.pressDPadCenter(); return@withContext true
                 }
