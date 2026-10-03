@@ -2,6 +2,8 @@
 package main
 
 import (
+	"bytes"
+	"context"
 	"crypto/ecdh"
 	"crypto/rand"
 	"encoding/base64"
@@ -18,6 +20,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/anacrolix/torrent/mse"
 	"golang.org/x/net/dns/dnsmessage"
 	"golang.zx2c4.com/wireguard/conn"
 	"golang.zx2c4.com/wireguard/device"
@@ -28,6 +31,7 @@ var enrollments atomic.Int32
 var probes atomic.Int64
 var dnsQueries atomic.Int64
 var transfers atomic.Int64
+var encryptedSeeds atomic.Int64
 
 func main() {
 	fixturePath := flag.String("fixture", "", "JSON from qa_torrent_seed.py with VPN advertised address")
@@ -73,7 +77,7 @@ func main() {
 	})
 	control.HandleFunc("/ready", func(w http.ResponseWriter, r *http.Request) { io.WriteString(w, "ready") })
 	control.HandleFunc("/metrics", func(w http.ResponseWriter, r *http.Request) {
-		json.NewEncoder(w).Encode(map[string]int64{"probes": probes.Load(), "dnsQueries": dnsQueries.Load(), "transfers": transfers.Load()})
+		json.NewEncoder(w).Encode(map[string]int64{"probes": probes.Load(), "dnsQueries": dnsQueries.Load(), "transfers": transfers.Load(), "encryptedSeeds": encryptedSeeds.Load()})
 	})
 	inner := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ip, _, err := net.SplitHostPort(r.RemoteAddr)
@@ -141,6 +145,17 @@ func main() {
 					}
 					go func() {
 						defer incoming.Close()
+						var stream io.ReadWriter = incoming
+						if field == "seed_port" {
+							infoHash, err := hex.DecodeString(fmt.Sprint(fixture["info_hash"]))
+							if err != nil || len(infoHash) != 20 {
+								return
+							}
+							stream, err = receiveTorrentStream(incoming, infoHash)
+							if err != nil {
+								return
+							}
+						}
 						outgoing, err := net.DialTimeout("tcp", fmt.Sprintf("127.0.0.1:%d", port), 5*time.Second)
 						if err != nil {
 							return
@@ -148,8 +163,8 @@ func main() {
 						defer outgoing.Close()
 						transfers.Add(1)
 						done := make(chan struct{})
-						go func() { io.Copy(outgoing, incoming); outgoing.Close(); close(done) }()
-						io.Copy(incoming, outgoing)
+						go func() { io.Copy(outgoing, stream); outgoing.Close(); close(done) }()
+						io.Copy(stream, outgoing)
 						incoming.Close()
 						<-done
 					}()
@@ -160,6 +175,34 @@ func main() {
 	fmt.Println("Disposable WireGuard peer ready; keys are not logged.")
 	// Emulator host alias forwards to loopback; Windows uses localhost for control.
 	must(http.ListenAndServe("127.0.0.1:8765", control))
+}
+
+type bufferedStream struct {
+	io.Reader
+	io.Writer
+}
+
+// The Android engine accepts a plain BEP handshake; desktop TorrServer prefers
+// MSE. Decode its transport using the upstream implementation before forwarding
+// to the same bounded loopback fixture. WireGuard remains the outer encryption.
+func receiveTorrentStream(conn net.Conn, infoHash []byte) (io.ReadWriter, error) {
+	conn.SetDeadline(time.Now().Add(15 * time.Second))
+	defer conn.SetDeadline(time.Time{})
+	header := make([]byte, 20)
+	if _, err := io.ReadFull(conn, header); err != nil {
+		return nil, err
+	}
+	stream := bufferedStream{io.MultiReader(bytes.NewReader(header), conn), conn}
+	if bytes.Equal(header, []byte("\x13BitTorrent protocol")) {
+		return stream, nil
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+	plain, _, err := mse.ReceiveHandshake(ctx, stream, func(yield func([]byte) bool) { yield(infoHash) }, mse.DefaultCryptoSelector)
+	if err == nil {
+		encryptedSeeds.Add(1)
+	}
+	return plain, err
 }
 
 func must(err error) {

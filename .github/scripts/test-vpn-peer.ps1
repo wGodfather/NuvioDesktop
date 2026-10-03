@@ -169,6 +169,9 @@ try {
     Require ((Request 'delete') -eq "STATE`tOff`t0`t0") 'profile removal'
     Http 'http://127.0.0.1:8765/metrics' | Set-Content -LiteralPath (Join-Path $qa 'metrics.json')
 } finally {
+    if ($null -ne $peerProcess) {
+        try { Http 'http://127.0.0.1:8765/metrics' | Set-Content -LiteralPath (Join-Path $qa 'metrics.json') } catch { }
+    }
     & $helper uninstall
     $cleanupExit = $LASTEXITCODE
     $privateKey = $null; $profile = $null; $encoded = $null
