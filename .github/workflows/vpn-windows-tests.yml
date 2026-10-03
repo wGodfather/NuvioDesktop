@@ -21,6 +21,14 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v6
+      - name: Fetch the exact packaged native torrent motor
+        shell: pwsh
+        run: |
+          git lfs pull --include='composeApp/src/desktopMain/resources/torrserver/windows-amd64/TorrServer.exe' --exclude=''
+          if ($LASTEXITCODE -ne 0) { throw 'Native torrent LFS retrieval failed.' }
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
       - uses: actions/setup-go@v6
         with:
           go-version: '1.26.8'

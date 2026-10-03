@@ -35,6 +35,44 @@ function Http([string]$url) {
     $client = [Net.Http.HttpClient]::new($handler); $client.Timeout = [TimeSpan]::FromSeconds(8)
     try { return $client.GetStringAsync($url).GetAwaiter().GetResult() } finally { $client.Dispose(); $handler.Dispose() }
 }
+function TestNativeTorrentFixture($fixture) {
+    $binary = Join-Path $root 'composeApp/src/desktopMain/resources/torrserver/windows-amd64/TorrServer.exe'
+    $pointer = (& git -C $root show 'HEAD:composeApp/src/desktopMain/resources/torrserver/windows-amd64/TorrServer.exe') -join "`n"
+    if ($pointer -notmatch 'oid sha256:([a-f0-9]{64})' -or (Get-FileHash -LiteralPath $binary -Algorithm SHA256).Hash -ne $Matches[1]) {
+        throw 'Native torrent binary does not match its committed LFS object.'
+    }
+    $config = Join-Path $qa 'torrserver'
+    New-Item -ItemType Directory -Force $config | Out-Null
+    $motor = Start-Process -FilePath $binary -ArgumentList @('--port', '18091', '--ip', '127.0.0.1', '--path', ('"' + $config + '"')) -WorkingDirectory $config -WindowStyle Hidden -PassThru -RedirectStandardOutput (Join-Path $qa 'native-torrent.log') -RedirectStandardError (Join-Path $qa 'native-torrent-error.log')
+    try {
+        $deadline = [DateTime]::UtcNow.AddSeconds(20)
+        do {
+            try { $null = Http 'http://127.0.0.1:18091/echo'; $ready = $true } catch { $ready = $false }
+            if ($ready) { break }; Start-Sleep -Milliseconds 200
+        } while ([DateTime]::UtcNow -lt $deadline)
+        Require $ready 'native torrent engine loopback control starts under VPN'
+        $added = Invoke-RestMethod 'http://127.0.0.1:18091/torrents' -Method Post -ContentType 'application/json' -Body (@{ action='add'; link=$fixture.magnet; save_to_db=$false } | ConvertTo-Json -Compress)
+        Require ($added.hash -eq $fixture.info_hash) 'native torrent metadata identity'
+        $handler = [Net.Http.HttpClientHandler]::new(); $handler.UseProxy = $false
+        $client = [Net.Http.HttpClient]::new($handler); $client.Timeout = [TimeSpan]::FromSeconds(120)
+        try {
+            $url = "http://127.0.0.1:18091/stream?link=$($added.hash)&index=1&play"
+            # Desktop playback and HTTP download consume the same native motor.
+            $tasks = @($client.GetByteArrayAsync($url), $client.GetByteArrayAsync($url))
+            foreach ($task in $tasks) {
+                $content = $task.GetAwaiter().GetResult()
+                $sha = [Security.Cryptography.SHA256]::Create()
+                try { $digest = [BitConverter]::ToString($sha.ComputeHash($content)).Replace('-', '').ToLowerInvariant() } finally { $sha.Dispose() }
+                Require ($content.Length -eq $fixture.bytes -and $digest -eq $fixture.sha256) 'concurrent native stream/download fixture SHA-256'
+            }
+        } finally { $client.Dispose(); $handler.Dispose() }
+        $metrics = (Http 'http://127.0.0.1:8765/metrics') | ConvertFrom-Json
+        Require ($metrics.transfers -ge 2) 'native tracker and peer traverse the encrypted netstack'
+    } finally {
+        if (-not $motor.HasExited) { $motor.Kill(); $motor.WaitForExit() }
+        $motor.Dispose()
+    }
+}
 function AwaitConnected {
     $deadline = [DateTime]::UtcNow.AddSeconds(60)
     do { $state = Request 'status'; if ($state -eq "STATE`tConnected`t1`t1") { return }; Start-Sleep -Milliseconds 500 } while ([DateTime]::UtcNow -lt $deadline)
@@ -66,10 +104,20 @@ Require (ProbePhysical) 'physical network baseline'
 if ($LASTEXITCODE -ne 0) { throw 'Peer self-test failed.' }
 & go -C (Join-Path $root 'tools/vpn-peer') build -o (Join-Path $qa 'vpn-peer.exe') .
 if ($LASTEXITCODE -ne 0) { throw 'Peer build failed.' }
-$peerProcess = Start-Process -FilePath (Join-Path $qa 'vpn-peer.exe') -WindowStyle Hidden -PassThru -RedirectStandardOutput (Join-Path $qa 'peer.log') -RedirectStandardError (Join-Path $qa 'peer-error.log')
 $testPassword = ConvertTo-SecureString (([Guid]::NewGuid().ToString('N')) + 'Aa!7') -AsPlainText -Force
 $testUser = $null
+$peerProcess = $null; $seedProcess = $null
 try {
+    $fixturePath = Join-Path $qa 'fixture.json'
+    $oldAdvertise = $env:NUVIO_QA_ADVERTISE_IP; $oldOutput = $env:NUVIO_QA_FIXTURE_OUTPUT
+    try {
+        $env:NUVIO_QA_ADVERTISE_IP = '10.90.0.1'; $env:NUVIO_QA_FIXTURE_OUTPUT = $fixturePath
+        $seedProcess = Start-Process -FilePath (Get-Command python).Source -ArgumentList @('tools/qa_torrent_seed.py') -WorkingDirectory $root -WindowStyle Hidden -PassThru -RedirectStandardOutput (Join-Path $qa 'seed.log') -RedirectStandardError (Join-Path $qa 'seed-error.log')
+    } finally { $env:NUVIO_QA_ADVERTISE_IP = $oldAdvertise; $env:NUVIO_QA_FIXTURE_OUTPUT = $oldOutput }
+    $deadline = [DateTime]::UtcNow.AddSeconds(15)
+    while (-not (Test-Path -LiteralPath $fixturePath) -and [DateTime]::UtcNow -lt $deadline) { Start-Sleep -Milliseconds 200 }
+    if (-not (Test-Path -LiteralPath $fixturePath)) { throw 'Fixture seed failed to start.' }
+    $peerProcess = Start-Process -FilePath (Join-Path $qa 'vpn-peer.exe') -ArgumentList @('-fixture', ('"' + $fixturePath + '"')) -WindowStyle Hidden -PassThru -RedirectStandardOutput (Join-Path $qa 'peer.log') -RedirectStandardError (Join-Path $qa 'peer-error.log')
     $deadline = [DateTime]::UtcNow.AddSeconds(15)
     do { try { $ready = (Http 'http://127.0.0.1:8765/ready') -eq 'ready' } catch { $ready = $false }; if ($ready) { break }; Start-Sleep -Milliseconds 200 } while ([DateTime]::UtcNow -lt $deadline)
     Require $ready 'ephemeral peer ready'
@@ -92,6 +140,7 @@ try {
     Require (([Net.Dns]::GetHostAddresses('vpn-fixture.test') | Where-Object { $_.ToString() -eq '10.90.0.1' }).Count -gt 0) 'DNS resolved only by encrypted fixture peer'
     Require (((Http 'http://vpn-fixture.test:8765/probe') | ConvertFrom-Json).source -in @('10.90.0.2','fd90::2')) 'DNS destination stays inside tunnel'
     Require (-not (ProbePhysical)) 'physical source binding cannot bypass connected tunnel'
+    TestNativeTorrentFixture $enrolled.fixture
     1..10 | ForEach-Object {
         Require ((Request 'hold') -eq "STATE`tBlocked`t1`t0") "cycle $_ holds guard"
         Require (-not (ProbePhysical)) "cycle $_ blocks physical network"
@@ -123,7 +172,8 @@ try {
     $privateKey = $null; $profile = $null; $encoded = $null
     if ($null -ne $testUser) { Remove-LocalUser -SID $testUser.SID }
     $testPassword.Dispose()
-    Stop-Process -Id $peerProcess.Id -Force -ErrorAction SilentlyContinue
+    if ($null -ne $peerProcess) { Stop-Process -Id $peerProcess.Id -Force -ErrorAction SilentlyContinue }
+    if ($null -ne $seedProcess) { Stop-Process -Id $seedProcess.Id -Force -ErrorAction SilentlyContinue }
     if ($cleanupExit -ne 0) { throw 'Disposable runner guard cleanup failed.' }
 }
 Write-Output 'Controlled peer checks passed. Physical device, sleep/roaming and provider throughput acceptance remain separate gates.'
