@@ -77,6 +77,11 @@ jobs:
         if: matrix.device == 'phone'
         run: |
           ./gradlew :composeApp:testAndroidHostTest '--tests=com.nuvio.app.features.vpn.*' --tests '*AndroidTorrentDownloadTest*' --tests '*AndroidDownloadTransferTest*' --tests '*P2pStreamingEngineAndroidTest*' -Pkotlin.compiler.execution.strategy=in-process --max-workers=1 --no-daemon --no-configuration-cache
+      - name: Build instrumented APKs before booting emulator
+        # Separate the Kotlin/D8 heap from emulator RAM and GPU buffers.
+        run: |
+          ./gradlew :androidApp:assembleFullDebug :androidApp:assembleFullDebugAndroidTest -Pkotlin.compiler.execution.strategy=in-process --max-workers=1 --no-daemon --no-configuration-cache
+          free -h
       - name: Real JNI TUN and remote profile flow on emulator
         uses: reactivecircus/android-emulator-runner@v2
         with:

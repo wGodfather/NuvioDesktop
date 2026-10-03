@@ -11,6 +11,9 @@ import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import androidx.test.uiautomator.By
+import androidx.test.uiautomator.UiDevice
+import androidx.test.uiautomator.Until
 import com.nuvio.app.MainActivity
 import com.nuvio.app.core.ui.NuvioTheme
 import com.nuvio.app.features.settings.SettingsScreen
@@ -18,6 +21,10 @@ import com.nuvio.app.features.vpn.*
 import com.wireguard.crypto.KeyPair
 import java.io.File
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.async
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
 import org.junit.Assert.*
 import org.junit.Rule
 import org.junit.Test
@@ -29,6 +36,37 @@ class VpnAndroidIntegrationTest {
     @get:Rule val compose = createAndroidComposeRule<MainActivity>()
     private val instrumentation = InstrumentationRegistry.getInstrumentation()
     private val context get() = instrumentation.targetContext
+
+    @Test fun systemVpnConsentWorksWithRemoteAndTvLauncherResolves() = runBlocking {
+        assertFalse(VpnPlatform.controller().state.value.enabled)
+        if (Build.VERSION.SDK_INT < 29) { assertFalse(VpnPlatform.controller().state.value.supported); return@runBlocking }
+        val manager = context.packageManager
+        val tv = manager.hasSystemFeature(android.content.pm.PackageManager.FEATURE_LEANBACK)
+        if (tv) {
+            val launcher = manager.getLeanbackLaunchIntentForPackage(context.packageName)
+            assertNotNull("TV must expose a real leanback launcher", launcher)
+            assertEquals("com.nuvio.app.launcher.NuvioTvActivity", launcher!!.component!!.className)
+            assertNotEquals(0, manager.getActivityInfo(launcher.component!!, 0).banner)
+        }
+        instrumentation.uiAutomation.executeShellCommand("appops set ${context.packageName} ACTIVATE_VPN ignore").use {
+            android.os.ParcelFileDescriptor.AutoCloseInputStream(it).readBytes()
+        }
+        val setup = async { VpnPlatform.controller().setup() }
+        val accepted = withContext(Dispatchers.IO) {
+            val device = UiDevice.getInstance(instrumentation)
+            if (!device.wait(Until.hasObject(By.res("android", "button1")), 15_000)) return@withContext false
+            repeat(8) {
+                val button = device.findObject(By.res("android", "button1"))
+                if (button?.isFocused == true) { device.pressDPadCenter(); return@withContext true }
+                if (it % 2 == 0) device.pressDPadRight() else device.pressDPadDown()
+            }
+            false
+        }
+        assertTrue("System VPN consent must be reachable and accepted using D-pad", accepted)
+        withTimeout(15_000) { setup.await() }
+        assertNull(android.net.VpnService.prepare(context))
+        assertFalse("Granting consent must not turn VPN on", VpnPlatform.controller().state.value.enabled)
+    }
 
     @Test fun vpnStartsOffAndTvRemoteCanOpenMaskedProfileEditor() {
         assertFalse(VpnPlatform.controller().state.value.enabled)
