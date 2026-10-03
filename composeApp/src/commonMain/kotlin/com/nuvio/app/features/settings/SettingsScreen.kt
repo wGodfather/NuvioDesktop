@@ -689,6 +689,7 @@ private fun MobileSettingsScreen(
                             onNotificationsClick = { onPageChange(SettingsPage.Notifications) },
                             onContentDiscoveryClick = { onPageChange(SettingsPage.ContentDiscovery) },
                             onIntegrationsClick = { onPageChange(SettingsPage.Integrations) },
+                            onVpnClick = { onPageChange(SettingsPage.Vpn) },
                             onTrackingClick = { onPageChange(SettingsPage.TraktAuthentication) },
                             onSupportersContributorsClick = onSupportersContributorsClick,
                             onLicensesAttributionsClick = onLicensesAttributionsClick,
@@ -703,6 +704,7 @@ private fun MobileSettingsScreen(
                         )
                     }
                 }
+                SettingsPage.Vpn -> vpnSettingsContent(isTablet = false)
                 SettingsPage.Account -> accountSettingsContent(
                     isTablet = false,
                 )
@@ -1148,6 +1150,7 @@ private fun TabletSettingsScreen(
                                         onNotificationsClick = { openInlinePage(SettingsPage.Notifications) },
                                         onContentDiscoveryClick = { openInlinePage(SettingsPage.ContentDiscovery) },
                                         onIntegrationsClick = { openInlinePage(SettingsPage.Integrations) },
+                                        onVpnClick = { openInlinePage(SettingsPage.Vpn) },
                                         onTrackingClick = { openInlinePage(SettingsPage.TraktAuthentication) },
                                         onSupportersContributorsClick = { openInlinePage(SettingsPage.SupportersContributors) },
                                         onLicensesAttributionsClick = { openInlinePage(SettingsPage.LicensesAttributions) },
@@ -1167,6 +1170,7 @@ private fun TabletSettingsScreen(
                                     )
                                 }
                             }
+                            SettingsPage.Vpn -> vpnSettingsContent(isTablet = true)
                             SettingsPage.Account -> accountSettingsContent(
                                 isTablet = true,
                             )

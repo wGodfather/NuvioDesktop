@@ -137,6 +137,13 @@ private fun LicensesAttributionsBody(
                 item = platformLicenseItem(),
                 isTablet = isTablet,
             )
+            if (com.nuvio.app.features.vpn.VpnPlatform.controller().state.value.supported) {
+                val androidVpn = com.nuvio.app.features.vpn.VpnPlatform.controller().supportsTextImport
+                LicenseRow(item = LicenseItem(titleRes = if (androidVpn) Res.string.vpn_android_license_title else Res.string.vpn_license_title,
+                    bodyRes = if (androidVpn) Res.string.vpn_android_license_body else Res.string.vpn_license_body,
+                    licenseRes = if (androidVpn) Res.string.vpn_android_license_label else Res.string.vpn_license_label,
+                    link = if (androidVpn) "https://git.zx2c4.com/wireguard-android/" else "https://github.com/WireGuard/wireguard-windows/tree/v1.1.1"), isTablet = isTablet)
+            }
         }
 
         PlainSettingsStack(

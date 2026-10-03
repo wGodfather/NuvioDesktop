@@ -26,18 +26,21 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
 import okhttp3.ConnectionPool
 
 internal class AndroidDownloadScheduler(val context: Context) {
     val store = AndroidDownloadStore(File(context.filesDir, "download-transfers"))
     val directory = File(context.filesDir, "downloads")
     private val locks = ConcurrentHashMap<String, Mutex>()
+    private val running = ConcurrentHashMap<String, Job>()
     private val cleanupScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     fun enqueue(item: DownloadItem): AndroidDownloadTransfer {
@@ -135,17 +138,31 @@ internal class AndroidDownloadScheduler(val context: Context) {
         else WorkManager.getInstance(context).cancelUniqueWork(workName(transfer))
     }
 
+    fun pauseForVpnTransition() {
+        store.transfers.value.values.filter { it.item.status == DownloadStatus.Downloading }
+            .forEach { pause(it.item.fileName) }
+        running.values.toList().forEach { it.cancel() }
+    }
+
+    suspend fun awaitVpnTransition() = withTimeout(30000) {
+        // execute owns this lock until its HTTP call and JNI session have closed.
+        locks.values.toList().forEach { it.withLock { } }
+    }
+
     suspend fun execute(
         transfer: AndroidDownloadTransfer,
         network: Network? = null,
         onProgress: (AndroidDownloadTransfer) -> Unit,
     ): Boolean = lock(transfer.item.fileName).withLock {
         val fileName = transfer.item.fileName
-        if (!isActive(transfer)) return@withLock false
+        val job = checkNotNull(currentCoroutineContext()[Job])
+        running[fileName] = job
         val destination = File(directory, fileName)
         // Engine routes are on loopback; binding that request to a Wi-Fi/cellular
         // JobScheduler network can make localhost unreachable.
-        val client = if (network != null && !transfer.item.isP2pDownload) {
+        val bindNetwork = shouldBindAndroidDownloadNetwork(network != null, transfer.item.isP2pDownload,
+            com.nuvio.app.features.vpn.VpnPlatform.enabled())
+        val client = if (network != null && bindNetwork) {
             downloadHttpClient.newBuilder()
                 .socketFactory(network.socketFactory)
                 .dns { network.getAllByName(it).toList() }
@@ -153,6 +170,8 @@ internal class AndroidDownloadScheduler(val context: Context) {
                 .build()
         } else downloadHttpClient
         try {
+            if (!isActive(transfer)) return@withLock false
+            com.nuvio.app.features.vpn.VpnPlatform.controller().withTorrentPermission { }
             DownloadSubtitles.prepare(transfer.item, destination.toURI().toString())
             currentCoroutineContext().ensureActive()
             if (!isActive(transfer)) return@withLock false
@@ -207,12 +226,18 @@ internal class AndroidDownloadScheduler(val context: Context) {
         } catch (error: Exception) {
             currentCoroutineContext().ensureActive()
             if (!isActive(transfer)) return@withLock false
+            if (error is com.nuvio.app.features.vpn.VpnOperationException ||
+                error is com.nuvio.app.features.vpn.VpnRequiredException) {
+                pause(fileName)
+                return@withLock false
+            }
             val retry = shouldRetryAndroidDownload(error, transfer.retryCount)
             if (retry) updateActive(transfer) { it.copy(retryCount = it.retryCount + 1) }
             else fail(transfer, error)
             retry
         } finally {
-            if (network != null && !transfer.item.isP2pDownload) withContext(NonCancellable + Dispatchers.IO) { client.connectionPool.evictAll() }
+            running.remove(fileName, job)
+            if (bindNetwork) withContext(NonCancellable + Dispatchers.IO) { client.connectionPool.evictAll() }
         }
     }
 
@@ -248,6 +273,9 @@ internal class AndroidDownloadScheduler(val context: Context) {
         const val JOB_NAMESPACE = "nuvio-downloads"
     }
 }
+
+internal fun shouldBindAndroidDownloadNetwork(networkPresent: Boolean, torrent: Boolean, vpnEnabled: Boolean): Boolean =
+    networkPresent && !torrent && !vpnEnabled
 
 internal fun shouldRetryAndroidDownload(error: Exception, retries: Int): Boolean =
     retries < 4 && when (error) {

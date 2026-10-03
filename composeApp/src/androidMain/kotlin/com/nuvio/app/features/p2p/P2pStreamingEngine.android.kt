@@ -128,6 +128,7 @@ actual object P2pStreamingEngine {
     private var diagnosticRequestSequence = 0L
 
     fun initialize(context: Context) {
+        com.nuvio.app.features.vpn.VpnPlatform.initialize(context.applicationContext)
         appContext = context.applicationContext
     }
 
@@ -218,11 +219,11 @@ actual object P2pStreamingEngine {
                 "start request=$requestSequence phase=${phase.get()} begin elapsedMs=${elapsedSince(startedAtMs)} " +
                     "cached=$reusedTorrent hash=${diagnosticId(canonicalHash)}",
             )
-            val torrentId = if (reusedTorrent) {
+            val torrentId = com.nuvio.app.features.vpn.VpnPlatform.controller().withTorrentPermission { if (reusedTorrent) {
                 canonicalHash
             } else {
                 resolvedEngine.addMagnet(magnetUri).also { knownTorrentIds += it }
-            }
+            } }
             ensureCurrentGeneration(generation)
             Log.i(
                 DIAGNOSTIC_TAG,
@@ -456,7 +457,7 @@ actual object P2pStreamingEngine {
                 DIAGNOSTIC_TAG,
                 "engine reuse configuration=$configurationKey elapsedMs=${elapsedSince(startedAtMs)}",
             )
-            return it
+            return com.nuvio.app.features.vpn.VpnPlatform.controller().withTorrentPermission { it }
         }
 
         Log.i(
@@ -474,7 +475,7 @@ actual object P2pStreamingEngine {
         check(cacheDirectory.mkdirs() || cacheDirectory.isDirectory) {
             "Could not create the Nuvio Engine cache directory"
         }
-        return NuvioEngine.create(
+        return com.nuvio.app.features.vpn.VpnPlatform.controller().withTorrentPermission { NuvioEngine.create(
             buildNuvioEngineConfig(
                 stateDirectory = stateDirectory,
                 cacheDirectory = cacheDirectory,
@@ -483,6 +484,7 @@ actual object P2pStreamingEngine {
                 diskCacheCapacityBytes = configurationKey.diskCacheCapacityBytes,
             )
         ).also { created ->
+            com.nuvio.app.features.vpn.AndroidVpnTraffic.register(created) { created.shutdown() }
             engine = created
             engineConfigurationKey = configurationKey
             observeEngineEvents(created)
@@ -495,8 +497,10 @@ actual object P2pStreamingEngine {
                 "engine create complete configuration=$configurationKey elapsedMs=${elapsedSince(startedAtMs)} " +
                     "version=${NuvioEngine.version} backend=${NuvioEngine.protocolBackendVersion}",
             )
-        }
+        } }
     }
+
+    suspend fun stopForVpnTransition() = stopStreamNow(shutdownEngine = true)
 
     private suspend fun closeEngine(target: NuvioEngine?) {
         if (target == null) return
@@ -511,7 +515,7 @@ actual object P2pStreamingEngine {
         }
         withContext(NonCancellable) {
             try {
-                target.shutdown()
+                com.nuvio.app.features.vpn.AndroidVpnTraffic.stop(target)
             } catch (error: Exception) {
                 Log.w(TAG, "Error shutting down Nuvio Engine", error)
             }

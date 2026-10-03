@@ -2,6 +2,10 @@ package com.nuvio.app.features.downloads
 
 import com.nuvio.app.core.storage.DesktopStorage
 import com.nuvio.app.features.p2p.P2pStreamingEngine
+import com.nuvio.app.features.vpn.VpnRequiredException
+import nuvio.composeapp.generated.resources.Res
+import nuvio.composeapp.generated.resources.vpn_required_download
+import org.jetbrains.compose.resources.getString
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -89,6 +93,8 @@ internal actual object DownloadsPlatformDownloader {
             } catch (error: CancellationException) {
                 onPaused()
                 throw error
+            } catch (error: VpnRequiredException) {
+                onFailure(getString(Res.string.vpn_required_download))
             } catch (error: Throwable) {
                 onFailure(error.message ?: "Download failed")
             }

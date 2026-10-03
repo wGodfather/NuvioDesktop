@@ -22,7 +22,11 @@ import com.nuvio.app.core.deeplink.handleAppUrl
 import com.nuvio.app.core.diagnostics.SentryInitializer
 import com.nuvio.app.core.ui.NuvioTheme
 import com.nuvio.app.features.discordrpc.DiscordPresenceManager
-import com.nuvio.app.features.p2p.P2pStreamingEngine
+import com.nuvio.app.features.vpn.VpnPlatform
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import kotlinx.coroutines.launch
 import com.nuvio.app.features.plugins.configureDesktopQuickJsLibrary
 import com.nuvio.app.features.player.PlatformPlayerSurface
 import com.nuvio.app.features.player.desktop.DesktopAppFullscreenController
@@ -67,9 +71,12 @@ fun main(args: Array<String>) {
     // on the very first Compose frame (matching Android's SharedPreferences behavior).
     ProfileRepository.loadCachedProfiles()
     AppIconRepository.ensureLoaded()
+    VpnPlatform.initialize()
     DiscordPresenceManager.start()
 
     application {
+        val closeScope = rememberCoroutineScope()
+        var closing by remember { mutableStateOf(false) }
         val appIconState by AppIconRepository.state.collectAsState()
         val smokePlayerUrl = (
             System.getProperty("nuvio.desktop.smokePlayerUrl")
@@ -122,10 +129,15 @@ fun main(args: Array<String>) {
 
         SwingWindow(
             onCloseRequest = {
-                P2pStreamingEngine.shutdown()
-                DiscordPresenceManager.shutdown()
-                SentryInitializer.close()
-                exitApplication()
+                if (!closing) {
+                    closing = true
+                    closeScope.launch {
+                        VpnPlatform.shutdown()
+                        DiscordPresenceManager.shutdown()
+                        SentryInitializer.close()
+                        exitApplication()
+                    }
+                }
             },
             title = if (smokePlayerUrl == null) "Nuvio" else "Nuvio Player Smoke",
             state = windowState,

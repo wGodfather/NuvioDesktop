@@ -180,6 +180,8 @@ dependencies {
     debugImplementation(libs.compose.uiTooling)
     androidTestImplementation("androidx.test:runner:1.7.0")
     androidTestImplementation("androidx.test:core:1.7.0")
+    androidTestImplementation("androidx.test.uiautomator:uiautomator:2.3.0")
+    androidTestImplementation("com.wireguard.android:tunnel:1.0.20260102")
     androidTestImplementation(libs.androidx.testExt.junit)
     androidTestImplementation(libs.androidx.activity.compose)
     androidTestImplementation("androidx.compose.ui:ui-test-junit4:${libs.versions.composeMultiplatform.get()}")

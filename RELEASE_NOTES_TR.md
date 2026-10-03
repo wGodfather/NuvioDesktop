@@ -1,4 +1,34 @@
-# Nuvio Türkiye 0.1.29-alpha — Windows ve Android
+# Nuvio Türkiye 0.1.30-alpha — çok platformlu VPN doğrulama adayı
+
+Bu geliştirme paketi yayımlanmış 0.1.29-alpha üzerine hazırlanır. Sürüm adı
+`0.1.30-alpha`, sürüm kodu `31`, Windows MSI iç sürümü `1.1.31`dir.
+Kararlı hedef `0.1.30`dur; kabul kapıları henüz tamamlanmadı. Henüz genel sürüm yayını değildir.
+
+- Windows x64 ayarlarına isteğe bağlı WireGuard VPN eklenir; varsayılan kapalıdır.
+- Android 10+ telefon/tablet, Android TV ve Google TV için resmî WireGuard
+  VpnService backend'i, şifreli profil ve TV kumandasıyla profil girişi eklenir.
+  Android uygulamasının normal Android 7+ kullanım sınırı korunur.
+- Kullanıcı kendi sağlayıcısının `.conf` profilini içe aktarır. Tek eş, tam IPv4
+  tüneli ve sayısal endpoint/DNS gerekir. VPN bütün bilgisayarın ağını kapsar.
+- VPN istendiğinde torrent başlangıcı gerçek eş el sıkışması ve güvenlik duvarı
+  koruması doğrulanana kadar bekler. Bağlantıyı kesmek korumayı tutar; VPN'i kapatmak
+  aktif indirmeleri/motoru durdurduktan sonra korumayı kaldırır.
+- Kitaplık İndirilenler sekmesi, kaynak indirme butonu ve aşağıdaki 0.1.29 kaynak
+  filtreleme/sıralama davranışları korunur.
+
+Android'de WireGuard ayrı süreçte çalışır; Nuvio ana süreci VPN ağına bağlanır.
+Sistem always-on/lockdown ayarı diğer uygulamalar için isteğe bağlı ek korumadır.
+Windows MSI yükseltme, onarım, geri alma ve kaldırmada VPN bakım adımları içerir.
+VPN hesabı sağlanmaz ve virüs taraması yapılmaz. Fiziksel cihaz, sızıntı,
+performans, imza ve yaşam döngüsü kapıları tamamlanmadan kararlı yayın yapılmaz.
+Güncel kanıt ve eksikler `VPN_VALIDATION_TR.md` dosyasındadır.
+
+Windows yardımcı ve MSI henüz güvenilir yayıncı imzasına sahip değildir. Android
+APK'ları aynı fork sertifikasıyla imzalanır. Sanal telefon/TV testleri fiziksel
+cihaz, gerçek sağlayıcı, tam paket yakalama ve 60 dakika video/hız kabulü yerine
+geçmez. Bu aday yalnız inceleme için taslakta tutulur; public stable yayın değildir.
+
+## Önceki yayımlanmış 0.1.29-alpha — Windows ve Android
 
 - Kitaplığa Kaydedildi ve Bulut sekmelerinin yanına İndirilenler eklendi. İndirmeleri görmek ve yönetmek için Ayarlar'a gitmek gerekmiyor.
 - Her kaynağın sağına indirme butonu eklendi. Butona basmak oynatmayı başlatmaz; mevcut veya tamamlanan indirme yanlışlıkla değiştirilmez.

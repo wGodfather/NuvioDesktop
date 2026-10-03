@@ -1,0 +1,80 @@
+name: Prepare experimental VPN review draft
+
+on:
+  # New workflows are not dispatchable until registered on the default branch.
+  # This feature-branch trigger prepares this candidate without merging stable.
+  push:
+    branches: ['codex/optional-wireguard-vpn']
+    paths:
+      - '.github/workflows/vpn-review-release.yml'
+      - '.github/scripts/prepare-vpn-review.ps1'
+      - '.github/scripts/prepare-vpn-review.py'
+  workflow_dispatch:
+    inputs:
+      package_source:
+        description: Exact application/package source commit (40 hex characters)
+        required: true
+        type: string
+      windows_run:
+        description: Successful Windows package and MSI lifecycle run
+        required: true
+        type: string
+      android_run:
+        description: Successful signed Android package and upgrade run
+        required: true
+        type: string
+      peer_run:
+        description: Successful Windows controlled peer run
+        required: true
+        type: string
+      matrix_run:
+        description: Successful Android and TV matrix run
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: vpn-review-release
+  cancel-in-progress: false
+
+jobs:
+  draft:
+    runs-on: windows-2022
+    timeout-minutes: 25
+    env:
+      GH_TOKEN: ${{ github.token }}
+      PACKAGE_SOURCE: ${{ inputs.package_source || '23f4316c04fd2fbfef4f42b09518f66d5a9d6bff' }}
+      WINDOWS_RUN: ${{ inputs.windows_run || '37115315259' }}
+      ANDROID_RUN: ${{ inputs.android_run || '37115317032' }}
+      PEER_RUN: ${{ inputs.peer_run || '37115534357' }}
+      MATRIX_RUN: ${{ inputs.matrix_run || '37115531810' }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 17
+      - name: Verify existing packages and prepare draft only
+        shell: pwsh
+        run: |
+          ./.github/scripts/prepare-vpn-review.ps1 -PackageSourceCommit $env:PACKAGE_SOURCE -WindowsRun $env:WINDOWS_RUN -AndroidRun $env:ANDROID_RUN -PeerRun $env:PEER_RUN -MatrixRun $env:MATRIX_RUN
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Nuvio-VPN-review-${{ env.PACKAGE_SOURCE }}
+          path: ${{ runner.temp }}/vpn-release-review
+          if-no-files-found: warn
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Nuvio-VPN-QA-${{ env.PACKAGE_SOURCE }}
+          path: ${{ runner.temp }}/vpn-review-qa
+          if-no-files-found: warn

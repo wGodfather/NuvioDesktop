@@ -25,12 +25,16 @@ internal actual object DownloadsPlatformDownloader {
 
     @Synchronized
     internal fun scheduler(context: Context): AndroidDownloadScheduler {
+        com.nuvio.app.features.vpn.VpnPlatform.initialize(context.applicationContext)
         appContext = context.applicationContext
         return downloadScheduler ?: AndroidDownloadScheduler(context.applicationContext).also { downloadScheduler = it }
     }
 
     internal fun managedTransfers(): List<AndroidDownloadTransfer> =
         downloadScheduler?.store?.transfers?.value?.values?.toList().orEmpty()
+
+    internal fun pauseForVpnTransition() { downloadScheduler?.pauseForVpnTransition() }
+    internal suspend fun awaitVpnTransition() { downloadScheduler?.awaitVpnTransition() }
 
     actual fun restoreItem(item: DownloadItem): DownloadItem = downloadScheduler?.restore(item)
         ?: if (item.status == DownloadStatus.Downloading) item.copy(status = DownloadStatus.Paused) else item

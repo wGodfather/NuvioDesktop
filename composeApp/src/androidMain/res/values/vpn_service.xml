@@ -1,0 +1,4 @@
+<resources>
+    <string name="vpn_android_title">Nuvio WireGuard VPN</string>
+    <string name="vpn_android_notification">VPN service is active. Open Nuvio to check connection and traffic protection.</string>
+</resources>
