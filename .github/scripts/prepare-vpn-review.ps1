@@ -87,4 +87,13 @@ foreach ($file in $files) {
         throw "Draft asset visibility/size mismatch: $name"
     }
 }
-Write-Output 'PASS verified experimental draft and all uploaded assets; stable publication remains blocked.'
+$roundtrip = Join-Path $env:RUNNER_TEMP 'vpn-review-roundtrip'
+gh release download $version -R $repo --dir $roundtrip
+if ($LASTEXITCODE -ne 0) { throw 'Authenticated draft asset download failed.' }
+foreach ($file in $files) {
+    $downloaded = Join-Path $roundtrip ([IO.Path]::GetFileName($file))
+    if ((Get-FileHash -LiteralPath $downloaded -Algorithm SHA256).Hash -ne (Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash) {
+        throw 'Downloaded draft asset checksum mismatch.'
+    }
+}
+Write-Output 'PASS verified experimental draft and SHA-256 roundtrip of every uploaded asset; stable publication remains blocked.'

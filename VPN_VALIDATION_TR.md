@@ -46,16 +46,16 @@ VPN kapalı mevcut 15 saniye sınırı korundu. Bu ölçüm aktarım hızı kabu
 
 | Kontrol | Doğrulanmış sonuç | Sınır |
 |---|---|---|
-| Android politika/parser/kapanış | 77ef106c: 53 host testi geçti | JNI ağı ayrıca test edildi |
-| Telefon API 29/35 | 77ef106c: her cihazda 4 test geçti | x86_64 emülatör |
-| Android TV / Google TV API 34 | 77ef106c: her cihazda 4 test geçti | Sanal TV |
-| Google TV API 36 / 16 KB | 77ef106c: 4 test geçti | Sanal x86_64 16 KB |
-| Android API 24 | 23f4316c: 4 kontrol geçti; açıklama görünür, VPN anahtarı pasif ve profil formu yok | Bu cihazda gerçek VPN açılmadı |
+| Android politika/parser/kapanış | b5bebfe0: 53 host testi geçti | JNI ağı ayrıca test edildi |
+| Telefon API 29/35 | b5bebfe0: her cihazda 4 test geçti | x86_64 emülatör |
+| Android TV / Google TV API 34 | b5bebfe0: her cihazda 4 test geçti | Sanal TV |
+| Google TV API 36 / 16 KB | b5bebfe0: 4 test geçti | Sanal x86_64 16 KB |
+| Android API 24 | b5bebfe0: 4 kontrol geçti; açıklama görünür, VPN anahtarı pasif ve profil formu yok | Bu cihazda gerçek VPN açılmadı |
 | Windows broker/WFP/peer | b5bebfe0: 23 helper, 6 WFP ve gerçek şifreli native torrent kontrolleri geçti | Geçici Windows runner |
 | Windows MSI | 23f4316c: 86 regresyon, MSVC/WebView2 köprüsü, yükseltme/onarım/rollback/kaldırma geçti | Uyku/reboot/imza ayrıca gerekli |
-| Android imzalı paketleme | a3209cf1: 100 host regresyonu, dört ABI, R8, lisans/native SHA, 64-bit 16 KB ELF ve zipalign geçti | ABI üretimi fiziksel cihaz kabulü değil |
-| Android 0.1.29 yükseltme | a3209cf1: aynı fork sertifikası, yerinde yükseltme, test tercih hash'i ve release açılışı geçti | Bütün gerçek kullanıcı verileri test edilmedi |
-| Android VPN kapalı regresyon | a3209cf1: 3 cihaz testi geçti | API 36 emülatörde arama/kaynak/torrent/Kitaplık İndirilenler |
+| Android imzalı paketleme | 23f4316c: 100 host regresyonu, dört ABI, R8, lisans/native SHA, 64-bit 16 KB ELF ve zipalign geçti | ABI üretimi fiziksel cihaz kabulü değil |
+| Android 0.1.29 yükseltme | 23f4316c: aynı fork sertifikası, tam sürüm/kod kontrolü, test tercih hash'i ve release açılışı geçti | Bütün gerçek kullanıcı verileri test edilmedi |
+| Android VPN kapalı regresyon | 23f4316c: 3 cihaz testi geçti | API 36 emülatörde arama/kaynak/torrent/Kitaplık İndirilenler |
 
 Android gerçek peer testi iki ayrı native motorun küçük yasal fixture'ı oynatıcıya
 veri sunma ve dosyaya indirme yollarından aktardığını SHA-256 ile doğrular.

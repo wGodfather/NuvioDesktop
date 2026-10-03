@@ -2,6 +2,7 @@
 from pathlib import Path
 import hashlib
 import json
+import re
 import shutil
 import struct
 import subprocess
@@ -33,6 +34,19 @@ for run in sys.argv[2:] if checking else sys.argv[1:]:
     assert result["status"] == "completed" and result["conclusion"] == "success", result
     if result["workflowName"] in ["Nuvio Türkiye Windows", "Nuvio Türkiye Android"]:
         assert result["headSha"] == SOURCE, "Both packages must come from the exact source"
+    if result["workflowName"] == "Nuvio VPN Windows isolation tests":
+        # pull_request jobs check out a synthetic merge, not necessarily headSha.
+        artifacts = json.loads(subprocess.check_output([GH, "api",
+            f"repos/{REPO}/actions/runs/{run}/artifacts"]))["artifacts"]
+        commits = [item["name"].removeprefix("vpn-windows-peer-") for item in artifacts
+            if item["name"].startswith("vpn-windows-peer-")]
+        assert len(commits) == 1 and re.fullmatch("[a-f0-9]{40}", commits[0])
+        result["testedCheckoutCommit"] = commits[0]
+        comparison = json.loads(subprocess.check_output([GH, "api",
+            f"repos/{REPO}/compare/{SOURCE}...{commits[0]}"]))
+        changed = [item["filename"] for item in comparison["files"]]
+        assert len(changed) < 300 and all(name.startswith("tools/vpn-peer/") for name in changed), "Synthetic merge changes application source"
+        result["testedCheckoutApplicationEquivalent"] = True
     evidence.append(result)
 assert len(evidence) == 4, "Windows peer, Android matrix and both packages required"
 assert {entry["workflowName"] for entry in evidence} == {
@@ -47,6 +61,9 @@ windows = OUT / "windows"
 inventory = json.loads((android / "native-library-inventory.json").read_text())
 apks = sorted(android.glob("*.apk"))
 assert len(apks) == 4 and len(inventory) == 4
+assert {apk.name for apk in apks} == {
+    f"Nuvio-Android-{abi}-0.1.30-alpha.apk" for abi in ["arm64-v8a", "armeabi-v7a", "x86", "x86_64"]}
+assert set(inventory) == {apk.name for apk in apks}
 signers = set()
 for apk in apks:
     expected = (apk.with_suffix(apk.suffix + ".sha256")).read_text().split()[0]
