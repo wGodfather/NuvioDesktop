@@ -83,6 +83,12 @@ try {
         $null = Request 'connect'; AwaitConnected
         Require (((Http 'http://10.90.0.1:8765/probe') | ConvertFrom-Json).source -eq '10.90.0.2') "cycle $_ reconnects encrypted data"
     }
+    1..10 | ForEach-Object {
+        Restart-Service NuvioVpnControl
+        Require ((Request 'status') -eq "STATE`tBlocked`t1`t0") "idle pipe restart $_ retains guard"
+        Require (-not (ProbePhysical)) "idle pipe restart $_ blocks physical network"
+    }
+    $null = Request 'connect'; AwaitConnected
     $service = Get-CimInstance Win32_Service -Filter "Name='NuvioVpnControl'"
     Stop-Process -Id $service.ProcessId -Force
     Require (-not (ProbePhysical)) 'abrupt broker death retains persistent guard'

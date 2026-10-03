@@ -176,11 +176,14 @@ namespace NuvioVpn {
             using (var service = new ServiceController(name)) {
                 try {
                     if (service.Status != ServiceControllerStatus.Stopped) {
-                        service.Stop(); service.WaitForStatus(ServiceControllerStatus.Stopped, TimeSpan.FromSeconds(15));
+                        if (service.Status != ServiceControllerStatus.StopPending) service.Stop();
+                        service.WaitForStatus(ServiceControllerStatus.Stopped, TimeSpan.FromSeconds(15));
                     }
                 } catch (InvalidOperationException error) {
                     var native = error.InnerException as System.ComponentModel.Win32Exception;
                     if (native == null || native.NativeErrorCode != 1060) throw;
+                } catch (System.ServiceProcess.TimeoutException) {
+                    throw new VpnError("SERVICE_STOP_TIMEOUT");
                 }
             }
         }
@@ -213,6 +216,7 @@ namespace NuvioVpn {
         DateTime connectStarted;
         Thread worker;
         NamedPipeServerStream currentPipe;
+        readonly CancellationTokenSource stopListener = new CancellationTokenSource();
         internal ControlService() { ServiceName = Program.ServiceName; CanStop = true; AutoLog = false; }
         protected override void OnStart(string[] args) {
             Program.EnsureNoReparse(Program.State); Program.VerifyInstalledRuntime();
@@ -227,6 +231,7 @@ namespace NuvioVpn {
         }
         protected override void OnStop() {
             stopping = true;
+            stopListener.Cancel();
             if (currentPipe != null) currentPipe.Dispose();
             if (worker != null) worker.Join(5000);
             if (firewall != null) firewall.Dispose(); // Persistent lock survives service stop/crash.
@@ -241,7 +246,9 @@ namespace NuvioVpn {
                 try {
                     using (var pipe = new NamedPipeServerStream(Program.PipeName, PipeDirection.InOut, 1,
                         PipeTransmissionMode.Byte, PipeOptions.Asynchronous, 4096, 4096, security)) {
-                        currentPipe = pipe; pipe.WaitForConnection();
+                        currentPipe = pipe;
+                        pipe.WaitForConnectionAsync(stopListener.Token).GetAwaiter().GetResult();
+                        if (stopping) break;
                         string caller = null; pipe.RunAsClient(() => caller = WindowsIdentity.GetCurrent(true).User.Value);
                         if (caller != owner && caller != "S-1-5-18") continue;
                         using (var reader = new StreamReader(pipe, Encoding.UTF8, false, 1024, true))
