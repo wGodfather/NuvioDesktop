@@ -9,6 +9,10 @@ on:
       - 'composeApp/src/androidHostTest/**/vpn/**'
       - 'composeApp/src/commonMain/**/vpn/**'
       - 'androidApp/**'
+      - 'composeApp/build.gradle.kts'
+      - 'gradle/libs.versions.toml'
+      - 'tools/vpn-peer/**'
+      - 'tools/qa_torrent_seed.py'
       - '.github/workflows/vpn-android-tests.yml'
 
 permissions:

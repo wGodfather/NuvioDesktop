@@ -64,6 +64,18 @@ Windows CI `37099393921` 86 testten mevcut eşzamanlı scraper testinde zaman
 aşımına uğradı; aynı kaynakla bir tekrar başlatıldı. Native izolasyon CI
 `37099395664` geçti. Başarısız testler geçti diye raporlanmaz.
 
+İkinci Android turu `37100510134`, WireGuard'ın Java record istatistik sınıfında
+AGP 9.2.0'ın bilinen eksik RecordTag hatasını ortaya çıkardı. Google'ın 9.2.1
+yamasına geçildi; el yapımı RecordTag sınıfı veya handshake kanıtını kaldıran
+bir geçici çözüm kullanılmadı. Kaynak:
+https://developer.android.com/build/releases/agp-9-2-0-release-notes#agp-9-2-1
+
+Windows paket CI'sinin aynı kaynakla ikinci turunda 86 regresyon testi ve MSI
+paketleme geçti; gerçek 1.1.30 → 1.1.31 yükseltme ve onarımda profil/veri/ağ
+koruması doğrulandı. Enjekte edilmiş failure testi cached MSI veritabanını
+kullandığından beklenen action çalışmadı. Test artık güncellenmiş veritabanını
+REINSTALLMODE=vomus ile recache eder; rollback kabulü tekrar test bekler.
+
 ## Yayın kapısı
 
 CI için geliştirme dalına kaynak aktarılabilir. Testi bitmemiş bu kaynak `turkiye`
