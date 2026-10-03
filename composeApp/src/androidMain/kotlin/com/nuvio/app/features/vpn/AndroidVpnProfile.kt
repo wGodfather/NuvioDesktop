@@ -67,7 +67,7 @@ internal object AndroidVpnProfile {
         catch (_: Exception) { throw VpnOperationException("INVALID_PROFILE") }
     }
 
-    /** An established TUN without any reachable peer. The system lockdown covers TUN replacement. */
+    /** An established TUN without a reachable peer; the main process keeps its explicit netId binding. */
     fun guard(profile: Config): Config = Config.Builder().setInterface(com.wireguard.config.Interface.Builder()
         .setKeyPair(KeyPair()).addAddresses(profile.`interface`.addresses).addDnsServers(profile.`interface`.dnsServers).build())
         .addPeer(Peer.Builder().setPublicKey(KeyPair().publicKey).parseAllowedIPs("0.0.0.0/0, ::/0").build()).build()

@@ -102,7 +102,13 @@ class VpnPeerIntegrationTest {
                     assertEquals("10.90.0.2", JSONObject(http("http://10.90.0.1:8765/probe")).getString("source"))
                 }
                 // Service death must never clear the main process netId to a physical default.
-                shell("am crash ${context.packageName}:nuvio_vpn")
+                val serviceProcess = "${context.packageName}:nuvio_vpn"
+                val servicePid = shell("pidof $serviceProcess").trim().toInt()
+                assertTrue(servicePid > 0 && servicePid != android.os.Process.myPid())
+                shell("am crash $servicePid")
+                withTimeout(10_000) {
+                    while (shell("pidof $serviceProcess").trim().split(' ').any { it == servicePid.toString() }) delay(100)
+                }
                 assertPhysicalControlBlocked()
                 assertNotNull(context.getSystemService(ConnectivityManager::class.java).boundNetworkForProcess)
                 controller.connect(); awaitConnected(controller)
@@ -134,8 +140,8 @@ class VpnPeerIntegrationTest {
             connection.inputStream.bufferedReader().use { it.readText() }
         } finally { connection.disconnect() }
     }
-    private fun shell(command: String) {
-        instrumentation.uiAutomation.executeShellCommand(command).use { android.os.ParcelFileDescriptor.AutoCloseInputStream(it).readBytes() }
+    private fun shell(command: String): String = instrumentation.uiAutomation.executeShellCommand(command).use {
+        android.os.ParcelFileDescriptor.AutoCloseInputStream(it).readBytes().toString(Charsets.UTF_8)
     }
     private fun sha256(bytes: ByteArray) = MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") { "%02x".format(it) }
 }

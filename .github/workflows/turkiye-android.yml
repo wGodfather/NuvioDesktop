@@ -90,7 +90,7 @@ jobs:
           arch: x86_64
           ram-size: 1536M
           disk-size: 2048M
-          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
+          emulator-options: -no-window -gpu swiftshader -feature -Vulkan -no-snapshot -noaudio -no-boot-anim
           disable-animations: true
           script: |
             bash .github/scripts/test-android-upgrade.sh

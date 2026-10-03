@@ -43,3 +43,4 @@ iosApp/Configuration/DeviceSigning.local.json
 hs_err_pid*.log
 android-seed.log
 android-qa-logcat.txt
+.github/scripts/__pycache__/

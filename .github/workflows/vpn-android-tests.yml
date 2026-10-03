@@ -85,7 +85,7 @@ jobs:
           arch: ${{ matrix.arch }}
           ram-size: 1536M
           disk-size: 2048M
-          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
+          emulator-options: -no-window -gpu swiftshader -feature -Vulkan -no-snapshot -noaudio -no-boot-anim
           disable-animations: true
           script: ./gradlew :androidApp:connectedFullDebugAndroidTest '-Pandroid.testInstrumentationRunnerArguments.class=com.nuvio.android.VpnAndroidIntegrationTest,com.nuvio.android.VpnPeerIntegrationTest' -Pandroid.injected.androidTest.leaveApksInstalledAfterRun=true -Pkotlin.compiler.execution.strategy=in-process --max-workers=1 --no-daemon --no-configuration-cache
       - name: Preserve results and screenshots
