@@ -22,8 +22,6 @@ function Require([bool]$Result, [string]$Name) { if (-not $Result) { throw "Fail
 function Install([string]$Package, [string]$Mode, [string]$Name, [bool]$ExpectFailure = $false) {
     $log = Join-Path $work ($Name + '.log')
     $arguments = @($Mode, ('"' + $Package + '"'), '/qn', '/norestart', '/l*v', ('"' + $log + '"'))
-    # Repair normally uses the cached database, which has no injected action.
-    if ($ExpectFailure) { $arguments += @('REINSTALL=ALL', 'REINSTALLMODE=vomus') }
     $child = Start-Process msiexec.exe -ArgumentList $arguments -WindowStyle Hidden -Wait -PassThru
     if ($ExpectFailure) {
         Write-Output "Injected MSI exit code: $($child.ExitCode)" | Out-Host
@@ -73,6 +71,9 @@ try {
     Install $current '/fa' 'repair-current'
     Require ((Request 'status') -eq "STATE`tBlocked`t1`t0") 'repair resumes guarded broker'
     Require (-not (Probe)) 'repair keeps protection'
+    $appJar = Get-ChildItem (Join-Path $env:ProgramFiles 'Nuvio/app') -Filter '*.jar' | Select-Object -First 1
+    Require ($null -ne $appJar) 'installed application JAR exists'
+    $appHash = (Get-FileHash -LiteralPath $appJar.FullName -Algorithm SHA256).Hash
     $failedMsi = Join-Path $work 'forced-rollback.msi'; Copy-Item -LiteralPath $current -Destination $failedMsi
     # Isolate COM file handles; Windows Installer must reopen the edited database.
     & pwsh -NoProfile -File (Join-Path $PSScriptRoot 'inject-msi-failure.ps1') -Msi $failedMsi
@@ -83,6 +84,7 @@ try {
     Require ((Request 'status') -eq "STATE`tBlocked`t1`t0") 'rollback restores broker and guard'
     Require ((Get-FileHash $encryptedFile -Algorithm SHA256).Hash -eq $encryptedHash) 'rollback preserves encrypted profile'
     Require (-not (Probe)) 'rollback keeps protection'
+    Require ((Get-FileHash -LiteralPath $appJar.FullName -Algorithm SHA256).Hash -eq $appHash) 'rollback restores previous application files'
     Install $current '/x' 'uninstall-current'
     Require (Probe) 'uninstall restores networking'
     Require (-not (Get-Service NuvioVpnControl -ErrorAction SilentlyContinue)) 'uninstall removes owned broker'

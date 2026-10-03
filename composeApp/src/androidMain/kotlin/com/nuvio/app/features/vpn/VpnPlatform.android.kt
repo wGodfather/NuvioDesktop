@@ -3,6 +3,8 @@ package com.nuvio.app.features.vpn
 import android.content.Context
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
+import android.net.Network
+import android.net.NetworkRequest
 import android.net.VpnService
 import android.os.Build
 import com.nuvio.app.features.downloads.DownloadsPlatformDownloader
@@ -10,6 +12,8 @@ import com.nuvio.app.features.downloads.DownloadsRepository
 import com.nuvio.app.features.downloads.downloadHttpClient
 import com.nuvio.app.features.p2p.P2pStreamingEngine
 import java.util.IdentityHashMap
+import java.net.DatagramSocket
+import java.net.InetSocketAddress
 import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -79,21 +83,38 @@ internal class AndroidVpnBackend(private val context: Context, private val prefs
     private val store by lazy { AndroidVpnProfileStore(context) }
     private val remote by lazy { AndroidVpnRemote(context) }
     private val connectivity by lazy { context.getSystemService(ConnectivityManager::class.java) }
+    @Volatile private var vpnNetwork: Network? = null
+    init {
+        if (supported) connectivity.registerNetworkCallback(NetworkRequest.Builder()
+            .addTransportType(NetworkCapabilities.TRANSPORT_VPN)
+            .removeCapability(NetworkCapabilities.NET_CAPABILITY_NOT_VPN).build(), object : ConnectivityManager.NetworkCallback() {
+                override fun onAvailable(network: Network) { vpnNetwork = network }
+                override fun onLost(network: Network) { if (vpnNetwork == network) vpnNetwork = null }
+            })
+    }
     override suspend fun status(): VpnProtection = withContext(Dispatchers.IO) {
         val present = store.exists()
         if (!supported) return@withContext VpnProtection(VpnStatus.Unsupported, present)
         if (VpnService.prepare(context) != null) return@withContext VpnProtection(VpnStatus.SetupRequired, present)
         if (!prefs.enabled() && !remote.isRunning()) return@withContext VpnProtection(VpnStatus.Off, present)
         val result = remote.request("status")
-        val network = connectivity.allNetworks.firstOrNull {
-            connectivity.getNetworkCapabilities(it)?.hasTransport(NetworkCapabilities.TRANSPORT_VPN) == true
-        }
+        // allNetworks can retain the previous guard netId during TUN replacement.
+        val network = vpnNetwork
         // Android lockdown exempts the VPN app UID. Bind this process explicitly to
         // the VPN netId; never fall back to a physical network if that netId disappears.
         // WireGuard sockets belong to a separate process and remain unaffected.
         val bound = network != null && connectivity.bindProcessToNetwork(network) && connectivity.boundNetworkForProcess == network
-        if (result.status == VpnStatus.Connected && !bound) VpnProtection(VpnStatus.Blocked, present)
-        else result.copy(profilePresent = present, protected = result.protected && bound)
+        // A bind return value and a handshake alone do not prove the process route.
+        // UDP connect performs a kernel route lookup without sending DNS/data.
+        val routed = bound && result.protected && runCatching {
+            val config = store.load()
+            DatagramSocket().use { socket ->
+                socket.connect(InetSocketAddress(config.`interface`.dnsServers.first(), 53))
+                config.`interface`.addresses.any { it.address == socket.localAddress }
+            }
+        }.getOrDefault(false)
+        if (result.status == VpnStatus.Connected && !routed) VpnProtection(VpnStatus.Blocked, present)
+        else result.copy(profilePresent = present, protected = result.protected && routed)
     }
     override suspend fun setup() { if (!supported) throw VpnOperationException("ANDROID_VERSION_REQUIRED"); AndroidVpnUi.preparePermission() }
     override suspend fun openSystemSettings() { AndroidVpnUi.openSettings() }

@@ -79,6 +79,8 @@ class VpnAndroidIntegrationTest {
         val row = compose.onNodeWithText("Enter a connection profile")
         row.performScrollTo().performSemanticsAction(SemanticsActions.RequestFocus)
         row.performKeyInput { pressKey(Key.DirectionCenter) }
+        compose.waitForIdle()
+        compose.onNodeWithText("PrivateKey").performScrollTo()
         compose.onNodeWithText("PrivateKey").assertIsDisplayed()
         compose.onAllNodes(SemanticsMatcher.keyIsDefined(androidx.compose.ui.semantics.SemanticsProperties.Password)).assertCountEquals(2)
         val screenshot = instrumentation.uiAutomation.takeScreenshot()
@@ -106,6 +108,11 @@ class VpnAndroidIntegrationTest {
         try {
             controller.setEnabled(true)
             assertTrue(controller.state.value.status in setOf(VpnStatus.Blocked, VpnStatus.Connecting))
+            withTimeout(5_000) {
+                while (context.getSystemService(ConnectivityManager::class.java).boundNetworkForProcess == null) {
+                    controller.refresh(); kotlinx.coroutines.delay(50)
+                }
+            }
             assertNotNull("Main process must be pinned to the VPN network", context.getSystemService(ConnectivityManager::class.java).boundNetworkForProcess)
             var executed = false
             try { controller.withTorrentPermission { executed = true } } catch (_: VpnRequiredException) { }
