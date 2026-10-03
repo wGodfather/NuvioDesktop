@@ -128,6 +128,21 @@ tekrar çalıştırma geçti. İlk hatanın nedeni kesinleşmedi ve bu değişke
 genel sağlayıcı uyumluluğu kanıtı sayılmaz. Doğrulanmamış bağlantı korumalı
 olarak raporlanmadı.
 
+## 0.1.30-alpha sürüm numarası ve paket doğrulaması
+
+Kullanıcının isteğiyle VPN paketinin sürümü `0.1.30-alpha`, kodu `30` yapıldı.
+Windows testleri ve MSI paketlemesi geçti:
+https://github.com/wGodfather/NuvioDesktop/actions/runs/37086247592
+Paketin kaynak commit'i `3b350d62`; MSI SHA-256:
+`24b1d43143945c12286c24c7497d9d9c74339aaedeb9d52aac4ca58fb268d819`.
+İndirilen MSI içindeki uygulama sabitleri `0.1.30-alpha / 30` olarak doğrulandı.
+Windows kurulum veritabanındaki sürüm `1.1.30` olarak doğrulandı; mevcut paketleme
+işlevi Windows/JDK gereği ilk bileşeni en az 1 yapar. Uygulamada görünen sürüm
+`0.1.30-alpha` olarak kalır. Üç VPN ikilisinin manifest sağlama değerleri,
+lisans/kaynak dosyaları ve paket yardımcısının 23 testi geçti. MSI kurulmadı;
+0.1.29'dan gerçek kurulum yükseltme testi henüz yapılmadı. Bu paket deneysel
+geliştirme çıktısıdır; GitHub'da genel sürüm yayımlanmadı.
+
 Taslak PR'daki upstream'den kalan şablon kontrolü, bağlantılı bir talep/issue
 olmadığı için başarısızdır. Fork sahibinin uygulama isteği bu sohbetten gelir;
 GitHub üzerinde verilmiş bir issue onayı varmış gibi gösterilmez.
