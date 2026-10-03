@@ -91,7 +91,11 @@ class VpnAndroidIntegrationTest {
         compose.activityRule.scenario.onActivity { it.setContent { NuvioTheme { SettingsScreen(initialPageName = "Vpn") } } }
         compose.waitForIdle()
         if (Build.VERSION.SDK_INT < 29) {
-            compose.onNodeWithText("VPN support is not available on this device yet.").assertExists()
+            assertFalse(VpnPlatform.controller().state.value.supported)
+            // Status and scope both explain unsupported devices; neither is a unique selector.
+            compose.onAllNodesWithText("VPN support is not available on this device yet.")[0].assertIsDisplayed()
+            compose.onNode(hasToggleableState()).assertIsNotEnabled()
+            compose.onNodeWithText("Enter a connection profile").assertDoesNotExist()
             return
         }
         val row = compose.onNodeWithText("Enter a connection profile")
