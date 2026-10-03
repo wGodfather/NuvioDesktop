@@ -54,11 +54,24 @@ class VpnAndroidIntegrationTest {
         val setup = async { VpnPlatform.controller().setup() }
         val accepted = withContext(Dispatchers.IO) {
             val device = UiDevice.getInstance(instrumentation)
-            if (!device.wait(Until.hasObject(By.res("android", "button1")), 15_000)) return@withContext false
-            repeat(8) {
-                val button = device.findObject(By.res("android", "button1"))
+            val positive = By.res("android", "button1").pkg("com.android.vpndialogs")
+            if (!device.wait(Until.hasObject(positive), 15_000)) return@withContext false
+            val qa = File(context.getExternalFilesDir(null), "vpn-qa").also { it.mkdirs() }
+            // Only the system consent dialog contains no profile/private-key fields.
+            device.dumpWindowHierarchy(File(qa, "consent-before.xml"))
+            device.takeScreenshot(File(qa, "consent-before.png"))
+            repeat(12) {
+                device.waitForIdle(1_000)
+                val button = device.findObject(positive)
                 if (button?.isFocused == true) { device.pressDPadCenter(); return@withContext true }
-                if (it % 2 == 0) device.pressDPadRight() else device.pressDPadDown()
+                if (it % 2 == 0) device.pressDPadDown() else device.pressDPadRight()
+                if (device.wait(Until.hasObject(By.res("android", "button1").pkg("com.android.vpndialogs").focused(true)), 1_000)) {
+                    device.pressDPadCenter(); return@withContext true
+                }
+            }
+            if (device.currentPackageName == "com.android.vpndialogs") {
+                device.dumpWindowHierarchy(File(qa, "consent-unfocused.xml"))
+                device.takeScreenshot(File(qa, "consent-unfocused.png"))
             }
             false
         }

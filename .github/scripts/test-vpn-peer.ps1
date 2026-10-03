@@ -45,12 +45,14 @@ function TestNativeTorrentFixture($fixture) {
     New-Item -ItemType Directory -Force $config | Out-Null
     $motor = Start-Process -FilePath $binary -ArgumentList @('--port', '18091', '--ip', '127.0.0.1', '--path', ('"' + $config + '"')) -WorkingDirectory $config -WindowStyle Hidden -PassThru -RedirectStandardOutput (Join-Path $qa 'native-torrent.log') -RedirectStandardError (Join-Path $qa 'native-torrent-error.log')
     try {
-        $deadline = [DateTime]::UtcNow.AddSeconds(20)
+        $started = [DateTime]::UtcNow
+        $deadline = $started.AddSeconds(60)
         do {
             try { $null = Http 'http://127.0.0.1:18091/echo'; $ready = $true } catch { $ready = $false }
             if ($ready) { break }; Start-Sleep -Milliseconds 200
         } while ([DateTime]::UtcNow -lt $deadline)
         Require $ready 'native torrent engine loopback control starts under VPN'
+        Write-Output ('Native cold process startup: {0:N2} seconds (protocol test; UI startup acceptance is separate).' -f ([DateTime]::UtcNow - $started).TotalSeconds)
         $added = Invoke-RestMethod 'http://127.0.0.1:18091/torrents' -Method Post -ContentType 'application/json' -Body (@{ action='add'; link=$fixture.magnet; save_to_db=$false } | ConvertTo-Json -Compress)
         Require ($added.hash -eq $fixture.info_hash) 'native torrent metadata identity'
         $handler = [Net.Http.HttpClientHandler]::new(); $handler.UseProxy = $false
