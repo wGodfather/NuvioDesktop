@@ -56,7 +56,7 @@ jobs:
           chmod +x gradlew
       - name: Android düzeltme testleri ve imzalı APK
         run: |
-          ./gradlew :composeApp:testAndroidHostTest --tests '*AndroidTorrentDownloadTest*' --tests '*AndroidDownloadTransferTest*' --tests '*P2pStreamingEngineAndroidTest*' --tests '*TmdbCatalogTransportTest*' --tests '*SearchRequestStateTest*' --tests '*CatalogPaginationStateTest*' --tests '*StreamParserTest*' --tests '*StreamListingPolicyTest*' --tests '*StreamDownloadButtonTest*' --tests '*StreamSourceVerificationTest*' :androidApp:assembleFullRelease -Pkotlin.compiler.execution.strategy=in-process -PreleaseMinifyEnabled=false --max-workers=1 --no-configuration-cache --no-daemon
+          ./gradlew :composeApp:testAndroidHostTest --tests '*features.vpn.*' --tests '*AndroidTorrentDownloadTest*' --tests '*AndroidDownloadTransferTest*' --tests '*P2pStreamingEngineAndroidTest*' --tests '*TmdbCatalogTransportTest*' --tests '*SearchRequestStateTest*' --tests '*CatalogPaginationStateTest*' --tests '*StreamParserTest*' --tests '*StreamListingPolicyTest*' --tests '*StreamDownloadButtonTest*' --tests '*StreamSourceVerificationTest*' :androidApp:assembleFullRelease -Pkotlin.compiler.execution.strategy=in-process --max-workers=1 --no-configuration-cache --no-daemon
           mkdir -p dist
           for apk in androidApp/build/outputs/apk/full/release/*.apk; do
             abi=$(basename "$apk" | sed 's/androidApp-full-//;s/-release.apk//')
@@ -64,6 +64,14 @@ jobs:
             cp "$apk" "$target"
             sha256sum "$target" > "$target.sha256"
           done
+          python .github/scripts/verify-vpn-apks.py dist
+          buildtools=$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)
+          for apk in dist/*.apk; do
+            "$buildtools/apksigner" verify --print-certs "$apk" > "$apk.signature.txt"
+            "$buildtools/zipalign" -c -P 16 4 "$apk"
+          done
+          gh release download 0.1.29-alpha --repo "$GITHUB_REPOSITORY" --pattern Nuvio-Android-x86_64-0.1.29-alpha.apk --dir build/vpn-upgrade-029
+          echo '7ee8539336cd3e183e1ca731775ca01f15ee222e629d394156ea8c2f45f267a8  build/vpn-upgrade-029/Nuvio-Android-x86_64-0.1.29-alpha.apk' | sha256sum -c -
       - uses: actions/upload-artifact@v4
         with:
           name: Nuvio-Android-${{ env.RELEASE_VERSION }}
@@ -84,7 +92,9 @@ jobs:
           disk-size: 2048M
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
           disable-animations: true
-          script: bash .github/scripts/run-android-fork-qa.sh
+          script: |
+            bash .github/scripts/test-android-upgrade.sh
+            bash .github/scripts/run-android-fork-qa.sh
       - name: Android test raporları
         if: always()
         uses: actions/upload-artifact@v4

@@ -6,6 +6,10 @@ if ($env:GITHUB_ACTIONS -ne 'true' -or $env:RUNNER_OS -ne 'Windows' -or $env:RUN
 $current = (Resolve-Path -LiteralPath $Msi).Path
 $work = Join-Path $env:RUNNER_TEMP 'vpn-msi-lifecycle'
 New-Item -ItemType Directory -Path $work -Force | Out-Null
+& gh release download 0.1.29-alpha --repo wGodfather/NuvioDesktop --pattern Nuvio-Windows-x64-0.1.29-alpha.msi --dir (Join-Path $work 'published')
+if ($LASTEXITCODE -ne 0) { throw 'Published 0.1.29 upgrade baseline unavailable.' }
+$published = Join-Path $work 'published/Nuvio-Windows-x64-0.1.29-alpha.msi'
+if ((Get-FileHash $published -Algorithm SHA256).Hash -ne '99B9BF5E692AD8CC7E6DEB426FE2216A6E70E2514B7DD53401D41117ED7EDC68') { throw 'Published MSI checksum mismatch.' }
 & gh run download 37086247592 --repo wGodfather/NuvioDesktop --name Nuvio-Windows-0.1.30-alpha --dir (Join-Path $work 'previous')
 if ($LASTEXITCODE -ne 0) { throw 'Previous experimental MSI unavailable; upgrade gate cannot run.' }
 $previous = (Get-ChildItem (Join-Path $work 'previous') -Filter '*.msi' -Recurse | Select-Object -First 1).FullName
@@ -45,6 +49,12 @@ New-Item -ItemType Directory -Path (Split-Path $sentinel) -Force | Out-Null
 $userHash = (Get-FileHash $sentinel -Algorithm SHA256).Hash
 try {
     Require (Probe) 'network baseline'
+    Install $published '/i' 'install-published-029'
+    Install $current '/i' 'upgrade-published-029-to-current'
+    Require (Probe) 'default-off upgrade keeps normal networking'
+    Require (-not (Get-Service NuvioVpnControl -ErrorAction SilentlyContinue)) 'default-off upgrade does not install a broker'
+    Require ((Get-FileHash $sentinel -Algorithm SHA256).Hash -eq $userHash) 'published upgrade preserves app data'
+    Install $current '/x' 'remove-default-off-current'
     Install $previous '/i' 'install-previous'
     & $helper install ([Security.Principal.WindowsIdentity]::GetCurrent().User.Value)
     Require ($LASTEXITCODE -eq 0) 'install previous packaged broker'
@@ -64,14 +74,9 @@ try {
     Require ((Request 'status') -eq "STATE`tBlocked`t1`t0") 'repair resumes guarded broker'
     Require (-not (Probe)) 'repair keeps protection'
     $failedMsi = Join-Path $work 'forced-rollback.msi'; Copy-Item -LiteralPath $current -Destination $failedMsi
-    $installer = New-Object -ComObject WindowsInstaller.Installer
-    $database = $installer.OpenDatabase($failedMsi, 1)
-    foreach ($sql in @(
-        "INSERT INTO ``CustomAction`` (``Action``, ``Type``, ``Source``, ``Target``) VALUES ('NuvioVpnForcedFailure', 3074, 'NuvioVpnMaintenance', 'installer-test-failure')",
-        "INSERT INTO ``InstallExecuteSequence`` (``Action``, ``Condition``, ``Sequence``) VALUES ('NuvioVpnForcedFailure', '1', 6504)"
-    )) { $view = $database.OpenView($sql); $view.Execute(); $view.Close() }
-    $database.Commit(); [Runtime.InteropServices.Marshal]::FinalReleaseComObject($database) | Out-Null
-    [Runtime.InteropServices.Marshal]::FinalReleaseComObject($installer) | Out-Null
+    # Isolate COM file handles; Windows Installer must reopen the edited database.
+    & pwsh -NoProfile -File (Join-Path $PSScriptRoot 'inject-msi-failure.ps1') -Msi $failedMsi
+    if ($LASTEXITCODE -ne 0) { throw 'Failure injection database edit failed.' }
     $failureLog = Install $failedMsi '/i' 'forced-rollback' $true
     $failureText = Get-Content -LiteralPath $failureLog -Raw
     Require ($failureText -match 'NuvioVpnForcedFailure returned actual error code' -and $failureText -match 'Rollback: NuvioVpnRollback') 'deferred failure invokes rollback'

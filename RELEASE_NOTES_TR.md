@@ -1,9 +1,13 @@
-# Nuvio Türkiye 0.1.30-alpha — Windows VPN deneysel paket hazırlığı
+# Nuvio Türkiye 0.1.30-alpha — çok platformlu VPN doğrulama adayı
 
 Bu geliştirme paketi yayımlanmış 0.1.29-alpha üzerine hazırlanır. Sürüm adı
-`0.1.30-alpha`, sürüm kodu `30` olarak ayrılmıştır. Henüz genel sürüm yayını değildir.
+`0.1.30-alpha`, sürüm kodu `31`, Windows MSI iç sürümü `1.1.31`dir.
+Kararlı hedef `0.1.30`dur; kabul kapıları henüz tamamlanmadı. Henüz genel sürüm yayını değildir.
 
 - Windows x64 ayarlarına isteğe bağlı WireGuard VPN eklenir; varsayılan kapalıdır.
+- Android 10+ telefon/tablet, Android TV ve Google TV için resmî WireGuard
+  VpnService backend'i, şifreli profil ve TV kumandasıyla profil girişi eklenir.
+  Android uygulamasının normal Android 7+ kullanım sınırı korunur.
 - Kullanıcı kendi sağlayıcısının `.conf` profilini içe aktarır. Tek eş, tam IPv4
   tüneli ve sayısal endpoint/DNS gerekir. VPN bütün bilgisayarın ağını kapsar.
 - VPN istendiğinde torrent başlangıcı gerçek eş el sıkışması ve güvenlik duvarı
@@ -12,10 +16,12 @@ Bu geliştirme paketi yayımlanmış 0.1.29-alpha üzerine hazırlanır. Sürüm
 - Kitaplık İndirilenler sekmesi, kaynak indirme butonu ve aşağıdaki 0.1.29 kaynak
   filtreleme/sıralama davranışları korunur.
 
-VPN desteği yalnızca Windows x64 içindir. Android bağlantı desteği etkin değildir.
-Bu paket VPN hesabı sağlamaz ve virüs taraması yapmaz. Tam torrent/DNS/IPv6 sızıntı,
-hız, imzalama, fiziksel cihaz ve MSI yaşam döngüsü kontrolleri genel yayın öncesinde
-tamamlanmalıdır. Ayrıntılar `VPN_IMPLEMENTATION_TR.md` dosyasındadır.
+Android'de WireGuard ayrı süreçte çalışır; Nuvio ana süreci VPN ağına bağlanır.
+Sistem always-on/lockdown ayarı diğer uygulamalar için isteğe bağlı ek korumadır.
+Windows MSI yükseltme, onarım, geri alma ve kaldırmada VPN bakım adımları içerir.
+VPN hesabı sağlanmaz ve virüs taraması yapılmaz. Fiziksel cihaz, sızıntı,
+performans, imza ve yaşam döngüsü kapıları tamamlanmadan kararlı yayın yapılmaz.
+Güncel kanıt ve eksikler `VPN_VALIDATION_TR.md` dosyasındadır.
 
 ## Önceki yayımlanmış 0.1.29-alpha — Windows ve Android
 

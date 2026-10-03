@@ -5,8 +5,11 @@ yayımlanmış 0.1.29-alpha kaynakları üzerine güncellenmiştir. Kitaplık İ
 sekmesi, kaynak indirme butonu ve kaynak filtreleme/sıralama değişiklikleri korunur.
 Yayımlanmış 0.1.28-alpha ve 0.1.29-alpha paketleri değiştirilmez; VPN test paketi
 ayrı geliştirme çıktısıdır ve sürümü `0.1.30-alpha` olarak ayrılmıştır. Genel VPN
-yayını için aşağıdaki yayın kontrolleri gerekir. Android, Android TV,
-iOS, macOS ve Linux için bağlantı desteği bu değişiklikte etkinleştirilmez.
+yayını için aşağıdaki yayın kontrolleri gerekir. Bu belgenin aşağıdaki Windows
+prototip kanıtları geçmiş uygulamayı anlatır. 3 Ekim 07:15 geliştirmesi Android
+telefon/tablet, Android TV ve Google TV backend'ini ekler. Güncel sürüm kodu 31,
+MSI 1.1.31; mimari, CI sonuçları ve eksik kabul kapıları VPN_VALIDATION_TR.md'dedir.
+iOS, macOS ve Linux bağlantı desteği bu kapsamda etkinleştirilmez.
 
 Kaynak değişikliği: https://github.com/wGodfather/NuvioDesktop/pull/1 (taslak).
 Uygulama ve test kodu hazırlanmıştır; aşağıdaki yayın kontrolleri devam eder.

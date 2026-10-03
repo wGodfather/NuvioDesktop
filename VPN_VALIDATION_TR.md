@@ -46,7 +46,7 @@ saklanır. Paylaşılan WireGuard sürücüsü ve diğer VPN servisleri kaldır�
 | Windows native helper | 23 test geçti | Yerel PC'de servis/firewall kurulmadı |
 | MSI action/Binary ekleme ve paket runtime hash'leri | Geçti | Kurulum/rollback henüz CI'de çalıştırılmadı |
 | Telefon/Android TV/Google TV emülatörleri | İlk tur başarısız | IPC Message geri dönüşüm yarışı düzeltildi; tekrar bekleniyor |
-| Kontrollü peer, DNS/IPv6 ve fiziksel ağ kaçışı | Bekliyor | Host testleri bu kapıyı kapatmaz |
+| Windows kontrollü peer, DNS/IPv6 ve fiziksel IPv4 bypass | CI 37101108517 geçti | Diğer bütün sızıntı senaryolarının yerine geçmez |
 | 60 dakika/10 ağ değişimi, hız ölçümü | Bekliyor | Ölçüm yapılmadan hız iddiası yok |
 | Windows gerçek MSI lifecycle | Bekliyor | Önceki 1.1.30 paketinden yükseltme CI testi |
 | Windows güvenilir imza | Erişim yok | Sertifika/imzalama hizmeti soruldu; uydurma imza yok |
@@ -75,6 +75,20 @@ paketleme geçti; gerçek 1.1.30 → 1.1.31 yükseltme ve onarımda profil/veri/
 koruması doğrulandı. Enjekte edilmiş failure testi cached MSI veritabanını
 kullandığından beklenen action çalışmadı. Test artık güncellenmiş veritabanını
 REINSTALLMODE=vomus ile recache eder; rollback kabulü tekrar test bekler.
+
+Kaynak `3ac519d0` ile Windows native CI `37101108517`: 23 helper testi, WFP
+kontrolleri ve resmî wireguard-go netstack ile geçici eş bağlantısı geçti. Gerçek
+WireGuardNT tünelindeki IPv4/IPv6 kaynak adresleri, sentetik DNS, fiziksel IPv4
+bağlama denemelerinin engellenmesi, 10 hold/reconnect döngüsü ve ani broker
+çökmesi/geri dönüşü doğrulandı. Önceki public demo sunucusunun aralıklı handshake
+zaman aşımı tekrar görüldü; kökü doğrulanmadı, sağlayıcı kabulünden silinmedi.
+Kontrollü eş özel anahtarları bellekte oluşturulur; kullanıcının profili gerekmez.
+
+Üçüncü Windows paket turunda failure injection 1619 / STG_E_SHAREVIOLATION
+ile MSI dosyasını açamadı; COM veritabanı handle'ları test sürecinde kalıyordu.
+Enjeksiyon artık ayrı PowerShell sürecinde yapılır; gerçek rollback sonucu yine
+test edilmeden kabul verilmez. 0.1.29 public MSI ve imzalı Android APK'dan
+yükseltme, paket lisans/imza/native SHA ve 16 KB ELF kontrolleri de CI'ye eklendi.
 
 ## Yayın kapısı
 
