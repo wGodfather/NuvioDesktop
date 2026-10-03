@@ -103,6 +103,29 @@ Windows/Android arayüz ve kaynak listeleme değişiklikleri VPN dalına taşın
 VPN hâlâ yalnızca Windows x64'te ve varsayılan kapalıdır. Bu geliştirme çıktısının
 0.1.29-alpha taban numarası, yayımlanmış 0.1.29 paketinin VPN içerdiği anlamına gelmez.
 
+0.1.29 tabanında 59 masaüstü testi geçti: VPN politika/protokol, magnet,
+kaynak filtreleme/sıralama, kaynak menüsü, ayrıştırma, video doğrulama ve HLS
+indirme kontrolleri. Yerel testte WebView2/MSVC bulunmadığından oynatıcı köprüsü
+derleme görevi atlandı; aşağıdaki Windows CI paketlemesinde bu görev de geçti.
+Android host ortamında 83 test geçti: yayımlanmış 0.1.29'un 68 kaynak/indirme/
+arama/katalog testi ve 15 ortak VPN politika testi. Bu çalışmada yeni Android
+APK veya fiziksel cihaz VPN testi yapılmadı; Android bağlantı desteği etkin değildir.
+
+Yeni Windows test paketi:
+https://github.com/wGodfather/NuvioDesktop/actions/runs/37080976116
+Uygulama kaynak commit'i `7756f8af`; MSI SHA-256:
+`e8c241f73025b3552895707b23979fc5362c25faca45e01b8784f94942cab01e`.
+İndirilen MSI, paket içindeki üç VPN bileşeni, dört lisans/kaynak dosyası ve
+paketten çıkarılan yardımcının 23 testi doğrulandı. MSI bilgisayara kurulmadı.
+
+Yeni geçici Windows bağlantı/güvenlik duvarı kontrolü:
+https://github.com/wGodfather/NuvioDesktop/actions/runs/37080978546
+23 yardımcı program, 6 WFP ve 16 servis/gerçek eş kontrolü ikinci çalıştırmada
+geçti. İlk çalıştırmada 60 saniyede el sıkışması doğrulanamadı; aynı kaynakla
+tekrar çalıştırma geçti. İlk hatanın nedeni kesinleşmedi ve bu değişken sonuç
+genel sağlayıcı uyumluluğu kanıtı sayılmaz. Doğrulanmamış bağlantı korumalı
+olarak raporlanmadı.
+
 Taslak PR'daki upstream'den kalan şablon kontrolü, bağlantılı bir talep/issue
 olmadığı için başarısızdır. Fork sahibinin uygulama isteği bu sohbetten gelir;
 GitHub üzerinde verilmiş bir issue onayı varmış gibi gösterilmez.
