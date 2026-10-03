@@ -40,6 +40,10 @@ class VpnPeerIntegrationTest {
         ActivityScenario.launch<MainActivity>(Intent(context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)).use { scenario ->
             val controller = VpnPlatform.controller()
             assertFalse(controller.state.value.enabled)
+            if (android.os.Build.VERSION.SDK_INT < 29) {
+                assertFalse("Older Android must not advertise this VPN backend", controller.state.value.supported)
+                return@runBlocking
+            }
             assertEquals("ready", http("http://10.0.2.2:8765/ready"))
             val keys = KeyPair()
             val enrolled = JSONObject(http("http://10.0.2.2:8765/enroll", keys.publicKey.toBase64()))
@@ -102,6 +106,9 @@ class VpnPeerIntegrationTest {
                     assertEquals("10.90.0.2", JSONObject(http("http://10.90.0.1:8765/probe")).getString("source"))
                 }
                 // Service death must never clear the main process netId to a physical default.
+                withTimeout(120_000) {
+                    P2pStreamingEngine.startStream(P2pStreamRequest(fixture.getString("info_hash"), 0, "fixture.mp4", listOf(tracker)))
+                }
                 val serviceProcess = "${context.packageName}:nuvio_vpn"
                 val servicePid = shell("pidof $serviceProcess").trim().toInt()
                 assertTrue(servicePid > 0 && servicePid != android.os.Process.myPid())
@@ -111,6 +118,16 @@ class VpnPeerIntegrationTest {
                 }
                 assertPhysicalControlBlocked()
                 assertNotNull(context.getSystemService(ConnectivityManager::class.java).boundNetworkForProcess)
+                controller.connect(); awaitConnected(controller)
+                // Permission revocation is a different failure from peer/service loss.
+                shell("appops set ${context.packageName} ACTIVATE_VPN ignore")
+                controller.refresh()
+                assertEquals(VpnStatus.SetupRequired, controller.state.value.status)
+                var authorized = false
+                try { controller.withTorrentPermission { authorized = true } } catch (_: VpnRequiredException) { }
+                assertFalse("Revoked permission must reject native work", authorized)
+                assertPhysicalControlBlocked()
+                shell("appops set ${context.packageName} ACTIVATE_VPN allow")
                 controller.connect(); awaitConnected(controller)
                 val soakSeconds = InstrumentationRegistry.getArguments().getString("vpnSoakSeconds")?.toInt() ?: 0
                 repeat(soakSeconds / 10) {

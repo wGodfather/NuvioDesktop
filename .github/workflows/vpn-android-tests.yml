@@ -29,6 +29,16 @@ jobs:
             api: 35
             target: default
             arch: x86_64
+          - device: phone-android10
+            profile: pixel_2
+            api: 29
+            target: default
+            arch: x86_64
+          - device: phone-android7-vpn-unsupported
+            profile: pixel_2
+            api: 24
+            target: default
+            arch: x86_64
           - device: android-tv
             profile: tv_1080p
             api: 34
