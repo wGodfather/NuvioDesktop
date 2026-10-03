@@ -1,6 +1,14 @@
 name: Prepare experimental VPN review draft
 
 on:
+  # New workflows are not dispatchable until registered on the default branch.
+  # This feature-branch trigger prepares this candidate without merging stable.
+  push:
+    branches: ['codex/optional-wireguard-vpn']
+    paths:
+      - '.github/workflows/vpn-review-release.yml'
+      - '.github/scripts/prepare-vpn-review.ps1'
+      - '.github/scripts/prepare-vpn-review.py'
   workflow_dispatch:
     inputs:
       package_source:
@@ -38,11 +46,11 @@ jobs:
     timeout-minutes: 25
     env:
       GH_TOKEN: ${{ github.token }}
-      PACKAGE_SOURCE: ${{ inputs.package_source }}
-      WINDOWS_RUN: ${{ inputs.windows_run }}
-      ANDROID_RUN: ${{ inputs.android_run }}
-      PEER_RUN: ${{ inputs.peer_run }}
-      MATRIX_RUN: ${{ inputs.matrix_run }}
+      PACKAGE_SOURCE: ${{ inputs.package_source || '23f4316c04fd2fbfef4f42b09518f66d5a9d6bff' }}
+      WINDOWS_RUN: ${{ inputs.windows_run || '37115315259' }}
+      ANDROID_RUN: ${{ inputs.android_run || '37115317032' }}
+      PEER_RUN: ${{ inputs.peer_run || '37115534357' }}
+      MATRIX_RUN: ${{ inputs.matrix_run || '37115531810' }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -61,12 +69,12 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: Nuvio-VPN-review-${{ inputs.package_source }}
+          name: Nuvio-VPN-review-${{ env.PACKAGE_SOURCE }}
           path: ${{ runner.temp }}/vpn-release-review
           if-no-files-found: warn
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: Nuvio-VPN-QA-${{ inputs.package_source }}
+          name: Nuvio-VPN-QA-${{ env.PACKAGE_SOURCE }}
           path: ${{ runner.temp }}/vpn-review-qa
           if-no-files-found: warn
