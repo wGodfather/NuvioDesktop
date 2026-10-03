@@ -1,3 +1,12 @@
+# BOATFLIX
+
+Bu fork BOATFLIX adı ve kullanıcı tarafından sağlanan siyah-altın simgeyle geliştirilir.
+Güncel sürüm **1.31**; sonraki sürümler **1.32, 1.33** şeklinde ilerler.
+Windows paketleri `BOATFLIX-Windows-x64-<sürüm>.msi` adını kullanır.
+Kaynak paket kimlikleri, güncelleme deposu, ayar/indirme klasörleri ve MSI yükseltme
+kimliği korunur. Özgün proje atıfları ve GPL-3.0 lisansı korunur.
+Simge kaynağı ve tekrar üretim aracı `assets/branding/` içindedir.
+
 # Nuvio Türkiye — Windows ve Android
 
 Bu fork NuvioMedia/NuvioDesktop 0.1.26-alpha temelinden hazırlanır. Uygulama

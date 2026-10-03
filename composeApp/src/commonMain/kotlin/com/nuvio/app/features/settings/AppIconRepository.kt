@@ -20,7 +20,8 @@ internal object AppIconRepository {
         if (hasLoaded) return
         hasLoaded = true
         _state.value = AppIconSettingsState(
-            selected = AppIconOption.fromPlatformName(AppIconPlatform.currentIconName()),
+            // Legacy color choices use the same BOATFLIX artwork in this fork.
+            selected = AppIconOption.ORIGINAL,
         )
     }
 

@@ -324,7 +324,7 @@ jobs:
           MACOS_ARCH: ${{ matrix.arch }}
           RELEASE_VERSION: ${{ needs.metadata.outputs.version }}
         run: |
-          dmg_path="composeApp/build/compose/release-dmgs/Nuvio-macOS-${MACOS_ARCH}-${RELEASE_VERSION}.dmg"
+          dmg_path="composeApp/build/compose/release-dmgs/BOATFLIX-macOS-${MACOS_ARCH}-${RELEASE_VERSION}.dmg"
           if [[ ! -f "${dmg_path}" ]]; then
             echo "Expected DMG was not produced: ${dmg_path}" >&2
             exit 1
@@ -339,7 +339,7 @@ jobs:
           MACOS_ARCH: ${{ matrix.arch }}
           RELEASE_VERSION: ${{ needs.metadata.outputs.version }}
         run: |
-          dmg_path="composeApp/build/compose/release-dmgs/Nuvio-macOS-${MACOS_ARCH}-${RELEASE_VERSION}.dmg"
+          dmg_path="composeApp/build/compose/release-dmgs/BOATFLIX-macOS-${MACOS_ARCH}-${RELEASE_VERSION}.dmg"
           if [[ ! -f "${dmg_path}" ]]; then
             echo "Expected DMG was not produced: ${dmg_path}" >&2
             exit 1
@@ -353,7 +353,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: nuvio-desktop-${{ needs.metadata.outputs.version }}-macos-${{ matrix.arch }}
-          path: composeApp/build/compose/release-dmgs/Nuvio-macOS-${{ matrix.arch }}-${{ needs.metadata.outputs.version }}.dmg
+          path: composeApp/build/compose/release-dmgs/BOATFLIX-macOS-${{ matrix.arch }}-${{ needs.metadata.outputs.version }}.dmg
           if-no-files-found: error
           retention-days: 14
 
@@ -486,7 +486,7 @@ jobs:
         env:
           RELEASE_VERSION: ${{ needs.metadata.outputs.version }}
         run: |
-          $msiRelativePath = "composeApp\build\compose\release-msis\Nuvio-Windows-x64-$env:RELEASE_VERSION.msi"
+          $msiRelativePath = "composeApp\build\compose\release-msis\BOATFLIX-Windows-x64-$env:RELEASE_VERSION.msi"
           if (-not (Test-Path $msiRelativePath)) {
             throw "Expected MSI was not produced: $msiRelativePath"
           }
@@ -549,13 +549,13 @@ jobs:
             throw "The extracted MSI does not contain the bundled Java runtime."
           }
 
-          $manifestPath = "composeApp\build\compose\release-msis\Nuvio-Windows-x64-$env:RELEASE_VERSION-contents.txt"
+          $manifestPath = "composeApp\build\compose\release-msis\BOATFLIX-Windows-x64-$env:RELEASE_VERSION-contents.txt"
           $extractedFiles = Get-ChildItem $extractDir -Recurse -File | Sort-Object FullName
           $nativeEntries = $jarEntries `
             | Where-Object { $_ -like "native/windows/*" } `
             | Sort-Object
           $manifest = [Collections.Generic.List[string]]::new()
-          $manifest.Add("MSI=Nuvio-Windows-x64-$env:RELEASE_VERSION.msi")
+          $manifest.Add("MSI=BOATFLIX-Windows-x64-$env:RELEASE_VERSION.msi")
           $manifest.Add("MSI_SHA256=$((Get-FileHash $msiPath -Algorithm SHA256).Hash.ToLowerInvariant())")
           $manifest.Add("MSI_SIGNATURE_STATUS=$((Get-AuthenticodeSignature $msiPath).Status)")
           $manifest.Add("EXTRACTED_FILE_COUNT=$($extractedFiles.Count)")
@@ -582,8 +582,8 @@ jobs:
         with:
           name: nuvio-desktop-${{ needs.metadata.outputs.version }}-windows-x64
           path: |
-            composeApp/build/compose/release-msis/Nuvio-Windows-x64-${{ needs.metadata.outputs.version }}.msi
-            composeApp/build/compose/release-msis/Nuvio-Windows-x64-${{ needs.metadata.outputs.version }}-contents.txt
+            composeApp/build/compose/release-msis/BOATFLIX-Windows-x64-${{ needs.metadata.outputs.version }}.msi
+            composeApp/build/compose/release-msis/BOATFLIX-Windows-x64-${{ needs.metadata.outputs.version }}-contents.txt
           if-no-files-found: error
           retention-days: 14
 
@@ -633,14 +633,14 @@ jobs:
             --no-daemon \
             --stacktrace
 
-          app_root="${GITHUB_WORKSPACE}/composeApp/build/compose/binaries/main-release/app/Nuvio"
+          app_root="${GITHUB_WORKSPACE}/composeApp/build/compose/binaries/main-release/app/BOATFLIX"
           if [[ ! -d "${app_root}" ]]; then
             echo "Expected the Linux app bundle at ${app_root} after createReleaseDistributable." >&2
             find composeApp/build/compose -maxdepth 6 2>/dev/null | head -n 200 >&2
             exit 1
           fi
 
-          executable_path="${app_root}/bin/Nuvio"
+          executable_path="${app_root}/bin/BOATFLIX"
           if [[ ! -x "${executable_path}" ]]; then
             executable_path="${app_root}/bin/nuvio"
           fi
@@ -664,8 +664,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          app_root="${GITHUB_WORKSPACE}/composeApp/build/compose/binaries/main-release/app/Nuvio"
-          alt_app_root="${GITHUB_WORKSPACE}/composeApp/build/compose/binaries/main-release/app/Nuvio/Nuvio"
+          app_root="${GITHUB_WORKSPACE}/composeApp/build/compose/binaries/main-release/app/BOATFLIX"
+          alt_app_root="${GITHUB_WORKSPACE}/composeApp/build/compose/binaries/main-release/app/BOATFLIX/BOATFLIX"
           if [[ -d "${alt_app_root}" ]]; then
             app_root="${alt_app_root}"
           fi
@@ -676,7 +676,7 @@ jobs:
             exit 1
           fi
 
-          executable_path="${app_root}/bin/Nuvio"
+          executable_path="${app_root}/bin/BOATFLIX"
           if [[ ! -x "${executable_path}" ]]; then
             executable_path="${app_root}/bin/nuvio"
           fi
@@ -699,13 +699,13 @@ jobs:
           sed -i "s|\${app_root}|${app_root}|g" flatpak/nuvio-flatpak.yml
           
           flatpak-builder --repo=flatpak-repo --force-clean flatpak-build flatpak/nuvio-flatpak.yml
-          flatpak build-bundle flatpak-repo "Nuvio-Linux-x86_64-${RELEASE_VERSION}.flatpak" com.nuvio.media.desktop
+          flatpak build-bundle flatpak-repo "BOATFLIX-Linux-x86_64-${RELEASE_VERSION}.flatpak" com.nuvio.media.desktop
 
       - name: Verify Flatpak
         shell: bash
         run: |
           set -euo pipefail
-          flatpak_path="Nuvio-Linux-x86_64-${RELEASE_VERSION}.flatpak"
+          flatpak_path="BOATFLIX-Linux-x86_64-${RELEASE_VERSION}.flatpak"
           if [[ ! -f "${flatpak_path}" ]]; then
             echo "Expected Flatpak bundle was not produced: ${flatpak_path}" >&2
             exit 1
@@ -716,7 +716,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: nuvio-desktop-${{ needs.metadata.outputs.version }}-linux-flatpak
-          path: Nuvio-Linux-x86_64-${{ needs.metadata.outputs.version }}.flatpak
+          path: BOATFLIX-Linux-x86_64-${{ needs.metadata.outputs.version }}.flatpak
           if-no-files-found: error
           retention-days: 14
 
@@ -781,13 +781,13 @@ jobs:
             exit 1
           fi
 
-          cp "${debs[0]}" "Nuvio-Linux-x86_64-${RELEASE_VERSION}.deb"
+          cp "${debs[0]}" "BOATFLIX-Linux-x86_64-${RELEASE_VERSION}.deb"
 
       - name: Verify DEB
         shell: bash
         run: |
           set -euo pipefail
-          deb_path="Nuvio-Linux-x86_64-${RELEASE_VERSION}.deb"
+          deb_path="BOATFLIX-Linux-x86_64-${RELEASE_VERSION}.deb"
           if [[ ! -f "${deb_path}" ]]; then
             echo "Expected DEB package was not produced: ${deb_path}" >&2
             exit 1
@@ -799,7 +799,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: nuvio-desktop-${{ needs.metadata.outputs.version }}-linux-deb
-          path: Nuvio-Linux-x86_64-${{ needs.metadata.outputs.version }}.deb
+          path: BOATFLIX-Linux-x86_64-${{ needs.metadata.outputs.version }}.deb
           if-no-files-found: error
           retention-days: 14
 
@@ -864,13 +864,13 @@ jobs:
             exit 1
           fi
 
-          cp "${rpms[0]}" "Nuvio-Linux-x86_64-${RELEASE_VERSION}.rpm"
+          cp "${rpms[0]}" "BOATFLIX-Linux-x86_64-${RELEASE_VERSION}.rpm"
 
       - name: Verify RPM
         shell: bash
         run: |
           set -euo pipefail
-          rpm_path="Nuvio-Linux-x86_64-${RELEASE_VERSION}.rpm"
+          rpm_path="BOATFLIX-Linux-x86_64-${RELEASE_VERSION}.rpm"
           if [[ ! -f "${rpm_path}" ]]; then
             echo "Expected RPM package was not produced: ${rpm_path}" >&2
             exit 1
@@ -882,7 +882,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: nuvio-desktop-${{ needs.metadata.outputs.version }}-linux-rpm
-          path: Nuvio-Linux-x86_64-${{ needs.metadata.outputs.version }}.rpm
+          path: BOATFLIX-Linux-x86_64-${{ needs.metadata.outputs.version }}.rpm
           if-no-files-found: error
           retention-days: 14
 
@@ -944,7 +944,7 @@ jobs:
 
           repo_owner="${GITHUB_REPOSITORY%%/*}"
           repo_name="${GITHUB_REPOSITORY#*/}"
-          update_information="gh-releases-zsync|${repo_owner}|${repo_name}|latest|Nuvio-Linux-x86_64-*.AppImage.zsync"
+          update_information="gh-releases-zsync|${repo_owner}|${repo_name}|latest|BOATFLIX-Linux-x86_64-*.AppImage.zsync"
 
           export APPIMAGETOOL="${appimagetool_path}"
           export APPIMAGE_WEBSITE_URL="https://github.com/NuvioMedia/NuvioDesktop"
@@ -969,24 +969,24 @@ jobs:
             exit 1
           fi
 
-          appimage_path="${appimage_dir}/Nuvio-Linux-x86_64-${RELEASE_VERSION}.AppImage"
+          appimage_path="${appimage_dir}/BOATFLIX-Linux-x86_64-${RELEASE_VERSION}.AppImage"
           if [[ ! -f "${appimage_path}" ]]; then
             echo "Expected AppImage artifact was not produced: ${appimage_path}" >&2
             find "${appimage_dir}" -maxdepth 4 -type f | sort >&2 || true
             exit 1
           fi
 
-          cp "${appimage_path}" "Nuvio-Linux-x86_64-${RELEASE_VERSION}.AppImage"
-          chmod +x "Nuvio-Linux-x86_64-${RELEASE_VERSION}.AppImage"
+          cp "${appimage_path}" "BOATFLIX-Linux-x86_64-${RELEASE_VERSION}.AppImage"
+          chmod +x "BOATFLIX-Linux-x86_64-${RELEASE_VERSION}.AppImage"
 
-          zsyncmake "Nuvio-Linux-x86_64-${RELEASE_VERSION}.AppImage"
+          zsyncmake "BOATFLIX-Linux-x86_64-${RELEASE_VERSION}.AppImage"
 
       - name: Verify AppImage
         shell: bash
         run: |
           set -euo pipefail
-          appimage_path="Nuvio-Linux-x86_64-${RELEASE_VERSION}.AppImage"
-          zsync_path="Nuvio-Linux-x86_64-${RELEASE_VERSION}.AppImage.zsync"
+          appimage_path="BOATFLIX-Linux-x86_64-${RELEASE_VERSION}.AppImage"
+          zsync_path="BOATFLIX-Linux-x86_64-${RELEASE_VERSION}.AppImage.zsync"
           if [[ ! -f "${appimage_path}" ]]; then
             echo "Expected AppImage package was not produced: ${appimage_path}" >&2
             exit 1
@@ -1018,8 +1018,8 @@ jobs:
         with:
           name: nuvio-desktop-${{ needs.metadata.outputs.version }}-linux-appimage
           path: |
-            Nuvio-Linux-x86_64-${{ needs.metadata.outputs.version }}.AppImage
-            Nuvio-Linux-x86_64-${{ needs.metadata.outputs.version }}.AppImage.zsync
+            BOATFLIX-Linux-x86_64-${{ needs.metadata.outputs.version }}.AppImage
+            BOATFLIX-Linux-x86_64-${{ needs.metadata.outputs.version }}.AppImage.zsync
           if-no-files-found: error
           retention-days: 14
 
@@ -1053,14 +1053,14 @@ jobs:
       - name: Create checksums
         run: |
           release_assets=(
-            "release/Nuvio-macOS-arm64-${RELEASE_VERSION}.dmg"
-            "release/Nuvio-macOS-x86_64-${RELEASE_VERSION}.dmg"
-            "release/Nuvio-Windows-x64-${RELEASE_VERSION}.msi"
-            "release/Nuvio-Linux-x86_64-${RELEASE_VERSION}.flatpak"
-            "release/Nuvio-Linux-x86_64-${RELEASE_VERSION}.deb"
-            "release/Nuvio-Linux-x86_64-${RELEASE_VERSION}.rpm"
-            "release/Nuvio-Linux-x86_64-${RELEASE_VERSION}.AppImage"
-            "release/Nuvio-Linux-x86_64-${RELEASE_VERSION}.AppImage.zsync"
+            "release/BOATFLIX-macOS-arm64-${RELEASE_VERSION}.dmg"
+            "release/BOATFLIX-macOS-x86_64-${RELEASE_VERSION}.dmg"
+            "release/BOATFLIX-Windows-x64-${RELEASE_VERSION}.msi"
+            "release/BOATFLIX-Linux-x86_64-${RELEASE_VERSION}.flatpak"
+            "release/BOATFLIX-Linux-x86_64-${RELEASE_VERSION}.deb"
+            "release/BOATFLIX-Linux-x86_64-${RELEASE_VERSION}.rpm"
+            "release/BOATFLIX-Linux-x86_64-${RELEASE_VERSION}.AppImage"
+            "release/BOATFLIX-Linux-x86_64-${RELEASE_VERSION}.AppImage.zsync"
           )
           if [[ ! -s release/release-notes.md ]]; then
             echo "Release notes are missing." >&2
@@ -1082,14 +1082,14 @@ jobs:
       - name: Create GitHub release
         run: |
           release_assets=(
-            "release/Nuvio-macOS-arm64-${RELEASE_VERSION}.dmg"
-            "release/Nuvio-macOS-x86_64-${RELEASE_VERSION}.dmg"
-            "release/Nuvio-Windows-x64-${RELEASE_VERSION}.msi"
-            "release/Nuvio-Linux-x86_64-${RELEASE_VERSION}.flatpak"
-            "release/Nuvio-Linux-x86_64-${RELEASE_VERSION}.deb"
-            "release/Nuvio-Linux-x86_64-${RELEASE_VERSION}.rpm"
-            "release/Nuvio-Linux-x86_64-${RELEASE_VERSION}.AppImage"
-            "release/Nuvio-Linux-x86_64-${RELEASE_VERSION}.AppImage.zsync"
+            "release/BOATFLIX-macOS-arm64-${RELEASE_VERSION}.dmg"
+            "release/BOATFLIX-macOS-x86_64-${RELEASE_VERSION}.dmg"
+            "release/BOATFLIX-Windows-x64-${RELEASE_VERSION}.msi"
+            "release/BOATFLIX-Linux-x86_64-${RELEASE_VERSION}.flatpak"
+            "release/BOATFLIX-Linux-x86_64-${RELEASE_VERSION}.deb"
+            "release/BOATFLIX-Linux-x86_64-${RELEASE_VERSION}.rpm"
+            "release/BOATFLIX-Linux-x86_64-${RELEASE_VERSION}.AppImage"
+            "release/BOATFLIX-Linux-x86_64-${RELEASE_VERSION}.AppImage.zsync"
             "release/SHA256SUMS.txt"
           )
           release_args=(

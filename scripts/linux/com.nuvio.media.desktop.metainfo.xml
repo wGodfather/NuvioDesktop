@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <component type="desktop-application">
   <id>com.nuvio.media.desktop</id>
-  <name>Nuvio</name>
+  <name>BOATFLIX</name>
   <summary>Discover movies and shows, save favorites and Watch from your own library</summary>
   <icon type="stock">com.nuvio.media.desktop</icon>
   <developer id="com.nuvio.media">
@@ -20,7 +20,7 @@
   </releases>
   <description>
     <p>Discover movies and shows, save favorites and Watch from your own library</p>
-    <p>Nuvio is a modern media organizer for movies and TV shows.</p>
+    <p>BOATFLIX is a modern media organizer for movies and TV shows.</p>
     <p>Discover titles, build your own library, track progress, and keep your watch history in sync with Trakt in a clean interface designed for large screens.</p>
   </description>
 </component>

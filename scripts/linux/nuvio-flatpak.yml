@@ -34,7 +34,7 @@ finish-args:
   - --filesystem=xdg-run/pipewire-0:ro
   - --filesystem=xdg-run/discord-ipc-0
   - --filesystem=xdg-run/app/com.discordapp.Discord:create
-  - --env=LD_LIBRARY_PATH=/app/lib:/app/lib64:/app/opt/Nuvio/lib
+  - --env=LD_LIBRARY_PATH=/app/lib:/app/lib64:/app/opt/BOATFLIX/lib
   - --env=XDG_DATA_DIRS=/app/share:/usr/share
   
 modules:
@@ -133,14 +133,14 @@ modules:
                   type: git
                   tag-pattern: ^v([\d.]+)$
     build-commands:
-      - install -d /app/lib /app/opt/Nuvio /app/bin
+      - install -d /app/lib /app/opt/BOATFLIX /app/bin
       - mkdir -p /app/lib/codecs-extra 
       - mkdir -p /app/lib/intel-vaapi-driver 
       - mkdir -p /app/lib/nvidia-vaapi-driver
-      - cp -a /run/build/nuvio/. /app/opt/Nuvio/
+      - cp -a /run/build/nuvio/. /app/opt/BOATFLIX/
       - install -Dm755 /run/build/nuvio/nuvio-launcher.sh /app/bin/nuvio
       - install -Dm644 /run/build/nuvio/com.nuvio.media.desktop.metainfo.xml /app/share/metainfo/com.nuvio.media.desktop.metainfo.xml
-      - install -Dm644 /run/build/nuvio/lib/Nuvio.png /app/share/icons/hicolor/512x512/apps/com.nuvio.media.desktop.png
+      - install -Dm644 /run/build/nuvio/lib/BOATFLIX.png /app/share/icons/hicolor/512x512/apps/com.nuvio.media.desktop.png
       - |
         bash -euo pipefail -c '
           mkdir -p /app/share/applications

@@ -1,4 +1,4 @@
-name: Nuvio Türkiye Windows
+name: BOATFLIX Türkiye Windows
 
 on:
   workflow_dispatch:
@@ -66,24 +66,24 @@ jobs:
           $env:LOCALAPPDATA="$env:RUNNER_TEMP/nuvio-tests/local"
           .\gradlew.bat :composeApp:desktopTest --tests '*TmdbCatalogTransportTest*' --tests '*SearchCatalogIntegrationTest*' --tests '*CatalogPaginationStateTest*' --tests '*SearchRequestStateTest*' --tests '*StreamSourceVerificationTest*' --tests '*DesktopStreamSourceVerifierTest*' --tests '*DesktopHlsDownloadTest*' --tests '*StreamParserTest*' --tests '*PluginRuntimeDesktopTest*' --tests '*StreamListingPolicyTest*' --tests '*StreamsContextMenuTest*' :composeApp:packageMsi "-Pnuvio.webview2.dir=$env:WEBVIEW2_ROOT" "-Pcompose.desktop.packaging.checkJdkVendor=false" "-Pkotlin.compiler.execution.strategy=in-process" --max-workers=1 --no-configuration-cache --no-daemon --stacktrace
           if ($LASTEXITCODE -ne 0) { throw "Test veya paketleme başarısız" }
-          $msi="composeApp/build/compose/release-msis/Nuvio-Windows-x64-$env:RELEASE_VERSION.msi"
+          $msi="composeApp/build/compose/release-msis/BOATFLIX-Windows-x64-$env:RELEASE_VERSION.msi"
           if (-not (Test-Path $msi)) { throw "Windows kurulum dosyası bulunamadı" }
           (Get-FileHash $msi -Algorithm SHA256).Hash.ToLowerInvariant() | Set-Content "$msi.sha256" -Encoding ascii
       - uses: actions/upload-artifact@v4
         with:
-          name: Nuvio-Windows-${{ env.RELEASE_VERSION }}
+          name: BOATFLIX-Windows-${{ env.RELEASE_VERSION }}
           path: composeApp/build/compose/release-msis/*
           if-no-files-found: error
       - name: Taslak sürüm
         if: inputs.create_draft
         shell: pwsh
         run: |
-          $msi="composeApp/build/compose/release-msis/Nuvio-Windows-x64-$env:RELEASE_VERSION.msi"
+          $msi="composeApp/build/compose/release-msis/BOATFLIX-Windows-x64-$env:RELEASE_VERSION.msi"
           $isDraft = gh release view "$env:RELEASE_VERSION" --repo "$env:GITHUB_REPOSITORY" --json isDraft --jq .isDraft 2>$null
           if ($LASTEXITCODE -eq 0) {
             if ($isDraft -ne 'true') { throw "Yayımlanmış bir sürümün dosyaları değiştirilmez." }
             gh release upload "$env:RELEASE_VERSION" $msi "$msi.sha256" --repo "$env:GITHUB_REPOSITORY" --clobber
           } else {
-            gh release create "$env:RELEASE_VERSION" $msi "$msi.sha256" --repo "$env:GITHUB_REPOSITORY" --target "$env:GITHUB_SHA" --draft --prerelease --title "Nuvio Türkiye $env:RELEASE_VERSION" --notes-file RELEASE_NOTES_TR.md
+            gh release create "$env:RELEASE_VERSION" $msi "$msi.sha256" --repo "$env:GITHUB_REPOSITORY" --target "$env:GITHUB_SHA" --draft --prerelease --title "BOATFLIX Türkiye $env:RELEASE_VERSION" --notes-file RELEASE_NOTES_TR.md
           }
           if ($LASTEXITCODE -ne 0) { throw "Taslak sürüm oluşturulamadı" }
