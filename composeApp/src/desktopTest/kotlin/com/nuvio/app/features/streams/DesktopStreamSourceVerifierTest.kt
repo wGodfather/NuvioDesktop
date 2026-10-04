@@ -1,6 +1,7 @@
 package com.nuvio.app.features.streams
 
 import com.sun.net.httpserver.HttpServer
+import com.nuvio.app.features.p2p.VerifiedTorrentFile
 import kotlinx.coroutines.*
 import java.net.InetSocketAddress
 import java.util.concurrent.Executors
@@ -8,6 +9,20 @@ import java.util.concurrent.atomic.AtomicReference
 import kotlin.test.*
 
 class DesktopStreamSourceVerifierTest {
+    @Test fun `season pack verification ignores a stale episode index and filename`() {
+        val files = listOf(
+            VerifiedTorrentFile(1, "Suits.S02E08.mkv", 500),
+            VerifiedTorrentFile(2, "Suits.S02E09.mkv", 900),
+            VerifiedTorrentFile(3, "Another.Show.S02E08.mkv", 1_000),
+        )
+        val stream = StreamItem(addonName = "Test", addonId = "test", fileIdx = 1,
+            behaviorHints = StreamBehaviorHints(filename = "Suits.S02E09.mkv"))
+        val context = StreamVerificationContext("series", "tt1632701:2:8", listOf("Suits"), season = 2, episode = 8)
+        assertEquals(1, selectVerifiedTorrentFile(files, stream, context)?.id)
+        assertEquals(2, selectVerifiedTorrentFile(files, stream, context.copy(episode = 9))?.id)
+        assertNull(selectVerifiedTorrentFile(files, stream, context.copy(episode = 10)))
+    }
+
     @Test fun `reads actual video dimensions and size with required headers`() = runBlocking {
         val headers = AtomicReference<String>()
         withServer { server, url ->
