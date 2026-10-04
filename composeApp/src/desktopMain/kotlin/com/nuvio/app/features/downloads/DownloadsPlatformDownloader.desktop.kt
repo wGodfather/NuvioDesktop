@@ -114,6 +114,7 @@ internal actual object DownloadsPlatformDownloader {
         val tempFile = File(downloadsDir, "$destinationFileName.part")
         val stateFile = File(downloadsDir, "$destinationFileName.hls_state")
         if (stateFile.exists()) stateFile.delete()
+        File(downloadsDir, "$destinationFileName.part.torrent_identity").delete()
         if (!tempFile.exists()) return true
         return runCatching { tempFile.delete() }.getOrDefault(false)
     }
@@ -170,9 +171,13 @@ internal actual object DownloadsPlatformDownloader {
                 hash = torrentHash,
                 requestedIdx = request.p2pFileIdx,
                 filename = request.p2pFilename,
+                season = request.item.seasonNumber,
+                episode = request.item.episodeNumber,
             )
 
             val streamUrl = P2pStreamingEngine.getTorrentStreamUrl(torrentHash, fileIdx)
+            bindTorrentDownloadPartial(tempFile,
+                "v1:$torrentHash:$fileIdx:${request.item.seasonNumber}:${request.item.episodeNumber}")
 
             streamHttpToFile(
                 url = streamUrl,

@@ -56,7 +56,7 @@ jobs:
           chmod +x gradlew
       - name: Android düzeltme testleri ve imzalı APK
         run: |
-          ./gradlew :composeApp:testAndroidHostTest --tests '*features.vpn.*' --tests '*AndroidTorrentDownloadTest*' --tests '*AndroidDownloadTransferTest*' --tests '*P2pStreamingEngineAndroidTest*' --tests '*TmdbCatalogTransportTest*' --tests '*SearchRequestStateTest*' --tests '*CatalogPaginationStateTest*' --tests '*StreamParserTest*' --tests '*StreamListingPolicyTest*' --tests '*StreamDownloadButtonTest*' --tests '*StreamSourceVerificationTest*' :androidApp:assembleFullRelease -Pkotlin.compiler.execution.strategy=in-process --max-workers=1 --no-configuration-cache --no-daemon
+          ./gradlew :composeApp:testAndroidHostTest --tests '*features.vpn.*' --tests '*AndroidTorrentDownloadTest*' --tests '*AndroidDownloadTransferTest*' --tests '*P2pStreamingEngineAndroidTest*' --tests '*TorrentFileSelectionTest*' --tests '*TmdbCatalogTransportTest*' --tests '*SearchRequestStateTest*' --tests '*CatalogPaginationStateTest*' --tests '*StreamParserTest*' --tests '*StreamListingPolicyTest*' --tests '*StreamDownloadButtonTest*' --tests '*StreamSourceVerificationTest*' :androidApp:assembleFullRelease -Pkotlin.compiler.execution.strategy=in-process --max-workers=1 --no-configuration-cache --no-daemon
           mkdir -p dist
           for apk in androidApp/build/outputs/apk/full/release/*.apk; do
             abi=$(basename "$apk" | sed 's/androidApp-full-//;s/-release.apk//')

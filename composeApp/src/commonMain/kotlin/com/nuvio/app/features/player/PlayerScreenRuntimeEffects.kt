@@ -121,6 +121,9 @@ internal fun PlayerScreenRuntime.BindPlayerRuntimeEffects() {
         activeTorrentFileIdx,
         activeTorrentFilename,
         activeTorrentTrackers,
+        activeSeasonNumber,
+        activeEpisodeNumber,
+        activeVideoId,
         p2pSettingsUiState.p2pEnabled,
     ) {
         val infoHash = activeTorrentInfoHash
@@ -139,6 +142,9 @@ internal fun PlayerScreenRuntime.BindPlayerRuntimeEffects() {
         val requestedFileIdx = activeTorrentFileIdx
         val requestedFilename = activeTorrentFilename
         val requestedTrackers = activeTorrentTrackers
+        val requestedSeason = activeSeasonNumber
+        val requestedEpisode = activeEpisodeNumber
+        val requestedVideoId = activeVideoId
         errorMessage = null
         playerController = null
         playerControllerSourceUrl = null
@@ -152,9 +158,13 @@ internal fun PlayerScreenRuntime.BindPlayerRuntimeEffects() {
                     fileIdx = requestedFileIdx,
                     filename = requestedFilename,
                     trackers = requestedTrackers,
+                    seasonNumber = requestedSeason,
+                    episodeNumber = requestedEpisode,
                 ),
             )
-            if (activeTorrentInfoHash == infoHash && activeTorrentFileIdx == requestedFileIdx) {
+            if (activeTorrentInfoHash == infoHash && activeTorrentFileIdx == requestedFileIdx &&
+                activeTorrentFilename == requestedFilename && activeSeasonNumber == requestedSeason &&
+                activeEpisodeNumber == requestedEpisode && activeVideoId == requestedVideoId) {
                 activeSourceAudioUrl = null
                 activeSourceHeaders = emptyMap()
                 activeSourceResponseHeaders = emptyMap()

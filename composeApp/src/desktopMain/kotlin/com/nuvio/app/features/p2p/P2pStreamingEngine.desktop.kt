@@ -45,8 +45,6 @@ import java.time.Duration
 import java.util.Locale
 import java.util.concurrent.TimeUnit
 
-private val VIDEO_EXTENSIONS = setOf("mkv", "mp4", "avi", "webm", "ts", "m4v", "mov", "wmv", "flv")
-
 actual object P2pStreamingEngine {
     private val log = Logger.withTag("P2pStreamingEngine")
     private val _state = MutableStateFlow<P2pStreamingState>(P2pStreamingState.Idle)
@@ -79,8 +77,9 @@ actual object P2pStreamingEngine {
         return hash
     }
 
-    internal suspend fun resolveTorrentFileIndex(hash: String, requestedIdx: Int?, filename: String?): Int =
-        resolveFileIndex(hash, requestedIdx, filename)
+    internal suspend fun resolveTorrentFileIndex(
+        hash: String, requestedIdx: Int?, filename: String?, season: Int? = null, episode: Int? = null,
+    ): Int = resolveFileIndex(hash, requestedIdx, filename, season, episode)
 
     internal fun getTorrentStreamUrl(torrentHash: String, fileIdx: Int): String =
         api.getStreamUrl(torrentHash, fileIdx)
@@ -137,6 +136,8 @@ actual object P2pStreamingEngine {
                 hash = hash,
                 requestedIdx = request.fileIdx,
                 filename = request.filename,
+                season = request.seasonNumber,
+                episode = request.episodeNumber,
             )
             ensureCurrentGeneration(generation)
 
@@ -282,7 +283,9 @@ actual object P2pStreamingEngine {
         return buildP2pMagnetUri(infoHash, trackers)
     }
 
-    private suspend fun resolveFileIndex(hash: String, requestedIdx: Int?, filename: String?): Int {
+    private suspend fun resolveFileIndex(
+        hash: String, requestedIdx: Int?, filename: String?, season: Int? = null, episode: Int? = null,
+    ): Int {
         val deadline = System.currentTimeMillis() + 60_000L
         var files: List<TorrServerFile> = emptyList()
 
@@ -297,49 +300,14 @@ actual object P2pStreamingEngine {
             throw P2pStreamingException("Torrent dosya bilgileri alınamadı. Kaynakta erişilebilir eş bulunamadı; başka kaynak seçin veya yeniden deneyin.")
         }
 
-        if (!filename.isNullOrBlank()) {
-            val name = filename.trim()
-            val exact = files.firstOrNull { file ->
-                file.path.substringAfterLast('/').equals(name, ignoreCase = true)
-            }
-            if (exact != null) {
-                log.d { "File resolved by exact filename match: ${exact.path} -> id=${exact.id}" }
-                return exact.id
-            }
-
-            val contains = files.firstOrNull { file ->
-                file.path.contains(name, ignoreCase = true)
-            }
-            if (contains != null) {
-                log.d { "File resolved by filename contains match: ${contains.path} -> id=${contains.id}" }
-                return contains.id
-            }
-        }
-
-        if (requestedIdx != null) {
-            val torrServerIndex = requestedIdx + 1
-            if (files.any { it.id == torrServerIndex }) {
-                log.d { "File resolved by ID offset: id=$torrServerIndex" }
-                return torrServerIndex
-            }
-        }
-
-        if (requestedIdx != null && requestedIdx in files.indices) {
-            val positionalFile = files[requestedIdx]
-            log.d { "File resolved by positional index: [$requestedIdx] -> ${positionalFile.path} (id=${positionalFile.id})" }
-            return positionalFile.id
-        }
-
-        val videoFile = files
-            .filter { file ->
-                val ext = file.path.substringAfterLast('.', "").lowercase()
-                ext in VIDEO_EXTENSIONS
-            }
-            .maxByOrNull { it.length }
-
-        val result = videoFile?.id ?: files.maxByOrNull { it.length }?.id ?: 1
-        log.d { "File resolved by largest video fallback: id=$result" }
-        return result
+        // TorrServer IDs are one-based; list order can differ from torrent order.
+        return selectTorrentFile(
+            files = files.map { TorrentSelectionFile(it.id - 1, it.path, it.length) },
+            requestedIndex = requestedIdx,
+            filename = filename,
+            season = season,
+            episode = episode,
+        ).index + 1
     }
 
     private fun startStatsPolling(hash: String, generation: Long) {

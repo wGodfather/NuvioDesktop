@@ -155,6 +155,8 @@ data class P2pStreamRequest(
     val fileIdx: Int?,
     val filename: String? = null,
     val trackers: List<String> = emptyList(),
+    val seasonNumber: Int? = null,
+    val episodeNumber: Int? = null,
 )
 
 internal fun canonicalP2pInfoHash(infoHash: String): String {

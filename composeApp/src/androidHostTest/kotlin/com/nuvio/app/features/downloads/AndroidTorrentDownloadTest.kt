@@ -56,6 +56,7 @@ class AndroidTorrentDownloadTest {
             server.enqueue(MockResponse().setResponseCode(206).setHeader("Content-Range", "bytes 5-10/11").setBody(" world"))
             val directory = temporary.newFolder()
             File(directory, "video.mkv.part").writeText("hello")
+            File(directory, "video.mkv.part.torrent_identity").writeText("v1:${"a".repeat(40)}:0:11:null:null")
             val session = Session(AndroidTorrentDownloadRoute(server.url("/new-route").toString(), 11))
             val output = transferAndroidTorrentDownload(torrent(), directory, null, session,
                 onHeaders = { _, _ -> }, onProgress = { _, _ -> })
@@ -73,6 +74,21 @@ class AndroidTorrentDownloadTest {
                 transferAndroidTorrentDownload(torrent(), temporary.newFolder(), null, session,
                     onHeaders = { _, _ -> }, onProgress = { _, _ -> })
             }
+            assertTrue(session.closed)
+        }
+    }
+
+    @Test fun restartsLegacyPartialInsteadOfMixingEpisodes(): Unit = runBlocking {
+        MockWebServer().use { server ->
+            server.enqueue(MockResponse().setBody("episode nine"))
+            val directory = temporary.newFolder()
+            File(directory, "video.mkv.part").writeText("episode eight")
+            val item = torrent().copy(seasonNumber = 2, episodeNumber = 9)
+            val session = Session(AndroidTorrentDownloadRoute(server.url("/episode9").toString(), 12, 8))
+            val output = transferAndroidTorrentDownload(item, directory, null, session,
+                onHeaders = { _, _ -> }, onProgress = { _, _ -> })
+            assertEquals("episode nine", output.readText())
+            assertNull(server.takeRequest().getHeader("Range"))
             assertTrue(session.closed)
         }
     }

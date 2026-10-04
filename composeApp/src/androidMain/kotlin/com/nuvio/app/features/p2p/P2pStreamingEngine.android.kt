@@ -237,10 +237,12 @@ actual object P2pStreamingEngine {
                 "start request=$requestSequence phase=${phase.get()} begin elapsedMs=${elapsedSince(startedAtMs)} " +
                     "fileIndex=${request.fileIdx ?: -1}",
             )
-            val stream = resolvedEngine.prepareStream(
+            val stream = resolvedEngine.prepareEpisodeAwareStream(
                 torrentId = torrentId,
                 fileIndex = request.fileIdx,
                 filenameHint = request.filename,
+                season = request.seasonNumber,
+                episode = request.episodeNumber,
             )
             preparedStream = stream
             Log.i(

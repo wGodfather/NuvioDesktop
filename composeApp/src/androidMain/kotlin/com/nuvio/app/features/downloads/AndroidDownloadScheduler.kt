@@ -127,6 +127,7 @@ internal class AndroidDownloadScheduler(val context: Context) {
             lock(fileName).withLock {
                 if (store.get(fileName) == null) {
                     File(directory, "$fileName.part").delete()
+                    File(directory, "$fileName.part.torrent_identity").delete()
                     DownloadSubtitleStorage(File(directory, fileName).toURI().toString()).remove()
                 }
             }

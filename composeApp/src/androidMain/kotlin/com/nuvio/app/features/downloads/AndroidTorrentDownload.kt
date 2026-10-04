@@ -4,6 +4,7 @@ import android.content.Context
 import com.nuvio.app.features.p2p.P2pSettingsRepository
 import com.nuvio.app.features.p2p.buildNuvioEngineConfig
 import com.nuvio.app.features.p2p.buildP2pMagnetUri
+import com.nuvio.app.features.p2p.prepareEpisodeAwareStream
 import com.nuvio.engine.NuvioEngine
 import java.io.File
 import java.io.IOException
@@ -14,7 +15,7 @@ import kotlinx.coroutines.withContext
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
 
-internal data class AndroidTorrentDownloadRoute(val url: String, val fileSize: Long)
+internal data class AndroidTorrentDownloadRoute(val url: String, val fileSize: Long, val fileIndex: Int = 0)
 
 internal interface AndroidTorrentDownloadSession {
     suspend fun prepare(item: DownloadItem): AndroidTorrentDownloadRoute
@@ -50,13 +51,15 @@ internal class NuvioEngineDownloadSession(private val context: Context) : Androi
         val magnet = item.sourceUrl.takeIf { it.startsWith("magnet:", ignoreCase = true) }
             ?: buildP2pMagnetUri(checkNotNull(item.p2pInfoHash) { "Torrent hash is missing" }, item.p2pTrackers)
         val torrentId = com.nuvio.app.features.vpn.VpnPlatform.controller().withTorrentPermission { activeEngine.addMagnet(magnet) }
-        val stream = activeEngine.prepareStream(
+        val stream = activeEngine.prepareEpisodeAwareStream(
             torrentId = torrentId,
             fileIndex = item.p2pFileIdx,
             filenameHint = item.p2pFilename,
+            season = item.seasonNumber,
+            episode = item.episodeNumber,
         )
         streamId = stream.id
-        AndroidTorrentDownloadRoute(stream.url, stream.fileSize)
+        AndroidTorrentDownloadRoute(stream.url, stream.fileSize, stream.fileIndex)
     }
 
     override suspend fun close() {
@@ -84,6 +87,12 @@ internal suspend fun transferAndroidTorrentDownload(
         val route = session.prepare(item)
         val url = route.url.toHttpUrl()
         require(url.host in setOf("127.0.0.1", "localhost", "::1")) { "Torrent engine returned a non-local route" }
+        check(directory.isDirectory || directory.mkdirs()) { "Cannot create downloads directory" }
+        require(File(item.fileName).name == item.fileName && item.fileName.isNotBlank())
+        bindTorrentDownloadPartial(
+            File(directory, "${item.fileName}.part"),
+            "v1:${item.p2pInfoHash ?: item.sourceUrl}:${route.fileIndex}:${route.fileSize}:${item.seasonNumber}:${item.episodeNumber}",
+        )
         return transferAndroidDownload(
             // Persist the original magnet in the transfer store, never the ephemeral engine URL.
             item = item.copy(sourceUrl = route.url, sourceHeaders = emptyMap()),
