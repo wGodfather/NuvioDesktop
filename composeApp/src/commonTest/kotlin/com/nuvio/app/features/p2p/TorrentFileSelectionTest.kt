@@ -5,6 +5,14 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 
 class TorrentFileSelectionTest {
+    @Test fun wordsInSeriesTitlesAreNotMistakenForSampleFiles() {
+        val files = listOf(
+            TorrentSelectionFile(1, "Trailer Park Boys/Trailer.Park.Boys.S02E08.mkv", 500),
+            TorrentSelectionFile(2, "Trailer Park Boys/Trailer.Park.Boys.S02E08.sample.mkv", 900),
+        )
+        assertEquals(1, selectTorrentFile(files, season = 2, episode = 8).index)
+    }
+
     private val suits = listOf(
         TorrentSelectionFile(0, "Suits.S02/README.txt", 9_000),
         TorrentSelectionFile(12, "Suits.S02/Suits.S02E09.1080p.mkv", 900),

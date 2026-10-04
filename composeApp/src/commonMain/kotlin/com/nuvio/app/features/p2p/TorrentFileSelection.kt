@@ -10,8 +10,17 @@ private val seasonFolder = Regex("(?i)(?:^|[ ._\\-])(?:s|season[ ._\\-]*|sezon[ 
 private val shortEpisode = Regex("(?i)^(?:e|episode[ ._\\-]*|bölüm[ ._\\-]*)?(\\d{1,3})(?=$|[ ._\\-])")
 
 private fun String.normalizedPath(): String = trim().replace('\\', '/').lowercase()
-private fun TorrentSelectionFile.isVideo(): Boolean =
-    path.substringAfterLast('.', "").lowercase() in videoExtensions && !sampleMarker.containsMatchIn(path.normalizedPath())
+private fun TorrentSelectionFile.isVideo(): Boolean {
+    if (path.substringAfterLast('.', "").lowercase() !in videoExtensions) return false
+    val normalized = path.normalizedPath()
+    if (normalized.substringBeforeLast('/', "").split('/').any { it in setOf("sample", "samples", "trailer", "trailers") }) return false
+    val name = normalized.substringAfterLast('/')
+    // A series title can contain these words (e.g. Trailer Park Boys).
+    // Sample/trailer markers for an episode must follow its episode identifier.
+    val episode = episodeMarker.find(name)
+    val labels = if (episode == null) name else name.substring(episode.range.last + 1)
+    return !sampleMarker.containsMatchIn(labels)
+}
 
 private fun TorrentSelectionFile.folderSeason(): Int? =
     path.normalizedPath().substringBeforeLast('/', "").split('/').asReversed()

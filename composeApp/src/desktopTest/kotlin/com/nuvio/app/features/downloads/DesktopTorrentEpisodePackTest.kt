@@ -26,7 +26,8 @@ import kotlin.test.assertTrue
 /** Starts the packaged TorrServer only on a disposable Windows CI machine. */
 class DesktopTorrentEpisodePackTest {
     @Test fun samePackStreamsAndDownloadsTheRequestedEpisodeDespiteStaleHints() = runBlocking {
-        assumeTrue(System.getenv("GITHUB_ACTIONS") == "true" && System.getenv("RUNNER_ENVIRONMENT") == "github-hosted")
+        assumeTrue(System.getenv("GITHUB_ACTIONS") == "true" && System.getenv("RUNNER_ENVIRONMENT") == "github-hosted" &&
+            System.getenv("RUNNER_OS") == "Windows")
         val root = generateSequence(File(".").canonicalFile) { it.parentFile }
             .first { File(it, "settings.gradle.kts").isFile }
         val qa = File(root, "build/torrent-pack-qa").apply { mkdirs() }
