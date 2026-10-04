@@ -105,6 +105,8 @@ jobs:
             androidApp/build/reports/androidTests
             androidApp/build/outputs/androidTest-results
             android-seed.log
+            android-pack-seed.log
+            android-pack-fixture.json
             android-qa-logcat.txt
             android-ui-screenshots
       - name: Taslak sürüm

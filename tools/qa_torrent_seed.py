@@ -22,6 +22,8 @@ def encode(value):
         return str(len(value)).encode() + b":" + value
     if isinstance(value, dict):
         return b"d" + b"".join(encode(k) + encode(value[k]) for k in sorted(value)) + b"e"
+    if isinstance(value, list):
+        return b"l" + b"".join(encode(item) for item in value) + b"e"
     raise TypeError(type(value))
 
 
@@ -36,17 +38,39 @@ def decode(data, offset=0):
     if marker == b"i":
         end = data.index(b"e", offset)
         return int(data[offset + 1:end]), end + 1
+    if marker == b"l":
+        result, offset = [], offset + 1
+        while data[offset:offset + 1] != b"e":
+            item, offset = decode(data, offset)
+            result.append(item)
+        return result, offset + 1
     end = data.index(b":", offset)
     size = int(data[offset:end])
     return data[end + 1:end + 1 + size], end + 1 + size
 
 
 payload = Path("composeApp/src/desktopTest/resources/verification/short-video.mp4").read_bytes()
+episode_pack = os.environ.get("NUVIO_QA_EPISODE_PACK") == "1"
+episodes = {}
+if episode_pack:
+    # Distinct valid MP4s: the second carries an ISO BMFF free box.
+    eight = payload
+    nine = payload + struct.pack(">I4s", 20, b"free") + b"episode-nine"
+    entries = [(b"README.txt", b"Generated local QA only"),
+               (b"Suits.S02E08.mp4", eight), (b"Suits.S02E09.mp4", nine)]
+    payload = b"".join(data for _, data in entries)
+    episodes = {str(number): {"sha256": hashlib.sha256(data).hexdigest(), "bytes": len(data)}
+                for number, data in [(8, eight), (9, nine)]}
 advertise_ip = os.environ.get("NUVIO_QA_ADVERTISE_IP", "10.0.2.2")
 assert advertise_ip in ("10.0.2.2", "10.90.0.1")
 assert 0 < len(payload) <= 16384
-metadata = encode({b"name": b"fixture.mp4", b"length": len(payload),
-                   b"piece length": 16384, b"pieces": hashlib.sha1(payload).digest()})
+info = {b"name": b"Suits.S02" if episode_pack else b"fixture.mp4",
+        b"piece length": 16384, b"pieces": hashlib.sha1(payload).digest()}
+if episode_pack:
+    info[b"files"] = [{b"path": [name], b"length": len(data)} for name, data in entries]
+else:
+    info[b"length"] = len(payload)
+metadata = encode(info)
 info_hash = hashlib.sha1(metadata).digest()
 seed = socket.socket()
 seed.bind(("127.0.0.1", 0))
@@ -139,7 +163,7 @@ output.parent.mkdir(parents=True, exist_ok=True)
 output.write_text(json.dumps({"magnet": magnet, "sha256": hashlib.sha256(payload).hexdigest(),
                               "bytes": len(payload), "seed_port": seed_port,
                               "tracker_port": tracker.server_port, "tracker_url": tracker_url,
-                              "info_hash": info_hash.hex()}, indent=2))
+                              "info_hash": info_hash.hex(), "episodes": episodes}, indent=2))
 print(f"Ready: {output.resolve()}", flush=True)
 threading.Thread(target=accept_peers, daemon=True).start()
 try:
