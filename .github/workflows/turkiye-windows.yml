@@ -46,6 +46,24 @@ jobs:
           distribution: temurin
           java-version: 17
       - uses: gradle/actions/setup-gradle@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+      - uses: actions/setup-go@v6
+        with:
+          go-version: '1.26.8'
+          cache-dependency-path: tools/vpn-peer/go.sum
+      - name: Build loopback-only season pack fixture bridge
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force build | Out-Null
+          Push-Location tools/vpn-peer
+          try {
+            go test ./...
+            if ($LASTEXITCODE -ne 0) { throw 'Fixture transport tests failed' }
+            go build -o ../../build/torrent-pack-peer.exe .
+            if ($LASTEXITCODE -ne 0) { throw 'Fixture transport compilation failed' }
+          } finally { Pop-Location }
       - name: Optional trusted Windows signing identity
         shell: pwsh
         env:
@@ -77,7 +95,7 @@ jobs:
           $env:JAVA_TOOL_OPTIONS="-Djdk.net.unixdomain.tmpdir=$env:RUNNER_TEMP"
           $env:APPDATA="$env:RUNNER_TEMP/nuvio-tests/roaming"
           $env:LOCALAPPDATA="$env:RUNNER_TEMP/nuvio-tests/local"
-          .\gradlew.bat :composeApp:desktopTest --tests '*TmdbCatalogTransportTest*' --tests '*SearchCatalogIntegrationTest*' --tests '*CatalogPaginationStateTest*' --tests '*SearchRequestStateTest*' --tests '*StreamSourceVerificationTest*' --tests '*DesktopStreamSourceVerifierTest*' --tests '*DesktopHlsDownloadTest*' --tests '*StreamParserTest*' --tests '*PluginRuntimeDesktopTest*' --tests '*StreamListingPolicyTest*' --tests '*StreamsContextMenuTest*' '--tests=com.nuvio.app.features.vpn.*' --tests '*P2pMagnetTest*' --tests '*TorrentFileSelectionTest*' --tests '*TorrentDownloadPartialTest*' :composeApp:packageMsi "-Pnuvio.webview2.dir=$env:WEBVIEW2_ROOT" "-Pcompose.desktop.packaging.checkJdkVendor=false" "-Pkotlin.compiler.execution.strategy=in-process" --max-workers=1 --no-configuration-cache --no-daemon --stacktrace
+          .\gradlew.bat :composeApp:desktopTest --tests '*TmdbCatalogTransportTest*' --tests '*SearchCatalogIntegrationTest*' --tests '*CatalogPaginationStateTest*' --tests '*SearchRequestStateTest*' --tests '*StreamSourceVerificationTest*' --tests '*DesktopStreamSourceVerifierTest*' --tests '*DesktopHlsDownloadTest*' --tests '*StreamParserTest*' --tests '*PluginRuntimeDesktopTest*' --tests '*StreamListingPolicyTest*' --tests '*StreamsContextMenuTest*' '--tests=com.nuvio.app.features.vpn.*' --tests '*P2pMagnetTest*' --tests '*TorrentFileSelectionTest*' --tests '*TorrentDownloadPartialTest*' --tests '*DesktopTorrentEpisodePackTest*' :composeApp:packageMsi "-Pnuvio.webview2.dir=$env:WEBVIEW2_ROOT" "-Pcompose.desktop.packaging.checkJdkVendor=false" "-Pkotlin.compiler.execution.strategy=in-process" --max-workers=1 --no-configuration-cache --no-daemon --stacktrace
           if ($LASTEXITCODE -ne 0) { throw "Test veya paketleme başarısız" }
           $msi="composeApp/build/compose/release-msis/Nuvio-Windows-x64-$env:RELEASE_VERSION.msi"
           if (-not (Test-Path $msi)) { throw "Windows kurulum dosyası bulunamadı" }
@@ -94,7 +112,10 @@ jobs:
         if: always()
         with:
           name: Nuvio-Windows-MSI-QA-${{ github.sha }}
-          path: ${{ runner.temp }}/vpn-msi-lifecycle/*.log
+          path: |
+            ${{ runner.temp }}/vpn-msi-lifecycle/*.log
+            composeApp/build/test-results/desktopTest
+            build/torrent-pack-qa
       - name: Taslak sürüm
         if: inputs.create_draft
         shell: pwsh

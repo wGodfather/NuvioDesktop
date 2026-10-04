@@ -39,12 +39,17 @@ class TorrentFileSelectionTest {
         }
     }
 
-    @Test fun alternateAndCombinedEpisodeNamesUseNumericBoundaries() {
-        for (name in listOf("Show.2x08.mkv", "Show.S2E8.mkv", "Show.S02E07E08.mkv", "Show.S02E07-E09.mkv")) {
+    @Test fun alternateEpisodeNamesUseNumericBoundariesAndCombinedFilesAreNotGuessed() {
+        for (name in listOf("Show.2x08.mkv", "Show.S2E8.mkv", "Show.S02E08/video.mkv")) {
             assertEquals(4, selectTorrentFile(listOf(TorrentSelectionFile(4, name, 100)), season = 2, episode = 8).index)
         }
         assertFailsWith<IllegalStateException> {
             selectTorrentFile(listOf(TorrentSelectionFile(4, "Show.2x080.mkv", 100)), season = 2, episode = 8)
+        }
+        for (name in listOf("Show.S02E07E08.mkv", "Show.S02E07-E09.mkv", "Show.S02E07-S02E09.mkv")) {
+            assertFailsWith<IllegalStateException> {
+                selectTorrentFile(listOf(TorrentSelectionFile(4, name, 100)), season = 2, episode = 8)
+            }
         }
     }
 

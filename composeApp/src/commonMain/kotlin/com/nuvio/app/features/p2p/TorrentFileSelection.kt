@@ -23,12 +23,14 @@ private fun TorrentSelectionFile.episodes(): Set<Pair<Int, Int>> {
     val path = path.normalizedPath()
     val name = path.substringAfterLast('/').substringBeforeLast('.')
     val result = mutableSetOf<Pair<Int, Int>>()
-    episodeMarker.findAll(name).forEach { match ->
+    val labelledName = if (episodeMarker.containsMatchIn(name)) name else
+        path.substringBeforeLast('/', "").split('/').asReversed().firstOrNull { episodeMarker.containsMatchIn(it) }.orEmpty()
+    episodeMarker.findAll(labelledName).forEach { match ->
         val season = (match.groups[1]?.value ?: match.groups[3]!!.value).toInt()
         val first = (match.groups[2]?.value ?: match.groups[4]!!.value).toInt()
         result += season to first
         // Combined files: S02E08E09, S02E08-E09 and 2x08-09.
-        var tail = name.substring(match.range.last + 1)
+        var tail = labelledName.substring(match.range.last + 1)
         val nextEpisode = Regex("^(e|[ ._]*-[ ._]*(?:e)?)(\\d{1,3})(?!\\d)")
         while (true) {
             val next = nextEpisode.find(tail) ?: break
@@ -60,7 +62,9 @@ internal fun selectTorrentFile(
     val videos = files.filter { it.isVideo() }
     check(videos.isNotEmpty()) { "Torrent içinde oynatılabilir video bulunamadı." }
     val target = if (season != null && episode != null) season to episode else null
-    val candidates = if (target == null) videos else videos.filter { target in it.episodes() }
+    // Combined episode files need chapter/time metadata to start the requested episode.
+    // Selecting the same file from its beginning for every episode repeats the original bug.
+    val candidates = if (target == null) videos else videos.filter { it.episodes() == setOf(target) }
     val hint = filename?.normalizedPath()?.takeIf { it.isNotBlank() }
 
     fun hinted(items: List<TorrentSelectionFile>): TorrentSelectionFile? {

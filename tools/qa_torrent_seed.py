@@ -62,7 +62,7 @@ if episode_pack:
     episodes = {str(number): {"sha256": hashlib.sha256(data).hexdigest(), "bytes": len(data)}
                 for number, data in [(8, eight), (9, nine)]}
 advertise_ip = os.environ.get("NUVIO_QA_ADVERTISE_IP", "10.0.2.2")
-assert advertise_ip in ("10.0.2.2", "10.90.0.1")
+assert advertise_ip in ("127.0.0.1", "10.0.2.2", "10.90.0.1")
 assert 0 < len(payload) <= 16384
 info = {b"name": b"Suits.S02" if episode_pack else b"fixture.mp4",
         b"piece length": 16384, b"pieces": hashlib.sha1(payload).digest()}
@@ -76,6 +76,8 @@ seed = socket.socket()
 seed.bind(("127.0.0.1", 0))
 seed.listen()
 seed_port = seed.getsockname()[1]
+advertised_seed_port = int(os.environ.get("NUVIO_QA_SEED_PROXY_PORT", seed_port))
+assert 0 < advertised_seed_port < 65536
 
 
 def receive(conn, size):
@@ -144,7 +146,7 @@ class Tracker(BaseHTTPRequestHandler):
             self.send_error(404)
             return
         body = encode({b"interval": 30, b"complete": 1, b"incomplete": 0,
-                       b"peers": socket.inet_aton(advertise_ip) + struct.pack(">H", seed_port)})
+                       b"peers": socket.inet_aton(advertise_ip) + struct.pack(">H", advertised_seed_port)})
         self.send_response(200)
         self.send_header("Content-Type", "application/x-bittorrent")
         self.send_header("Content-Length", str(len(body)))
@@ -157,11 +159,12 @@ class Tracker(BaseHTTPRequestHandler):
 
 tracker = ThreadingHTTPServer(("127.0.0.1", 0), Tracker)
 tracker_url = f"http://{advertise_ip}:{tracker.server_port}/announce"
-magnet = f"magnet:?xt=urn:btih:{info_hash.hex()}&dn=fixture.mp4&tr={quote(tracker_url, safe='')}&x.pe={advertise_ip}:{seed_port}"
+magnet = f"magnet:?xt=urn:btih:{info_hash.hex()}&dn=fixture.mp4&tr={quote(tracker_url, safe='')}&x.pe={advertise_ip}:{advertised_seed_port}"
 output = Path(os.environ.get("NUVIO_QA_FIXTURE_OUTPUT", "../artifacts/android-torrent-fixture.json"))
 output.parent.mkdir(parents=True, exist_ok=True)
 output.write_text(json.dumps({"magnet": magnet, "sha256": hashlib.sha256(payload).hexdigest(),
                               "bytes": len(payload), "seed_port": seed_port,
+                              "seed_proxy_port": advertised_seed_port,
                               "tracker_port": tracker.server_port, "tracker_url": tracker_url,
                               "info_hash": info_hash.hex(), "episodes": episodes}, indent=2))
 print(f"Ready: {output.resolve()}", flush=True)

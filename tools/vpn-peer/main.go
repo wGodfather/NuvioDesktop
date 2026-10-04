@@ -37,12 +37,17 @@ var encryptedSeeds atomic.Int64
 
 func main() {
 	fixturePath := flag.String("fixture", "", "JSON from qa_torrent_seed.py with VPN advertised address")
+	loopbackSeed := flag.Bool("loopback-seed", false, "MSE bridge for a generated loopback-only fixture; no VPN")
 	flag.Parse()
 	fixture := map[string]any{}
 	if *fixturePath != "" {
 		data, err := os.ReadFile(*fixturePath)
 		must(err)
 		must(json.Unmarshal(data, &fixture))
+	}
+	if *loopbackSeed {
+		runLoopbackSeed(fixture)
+		return
 	}
 	key, err := ecdh.X25519().GenerateKey(rand.Reader)
 	must(err)
@@ -192,6 +197,40 @@ func main() {
 	fmt.Println("Disposable WireGuard peer ready; keys are not logged.")
 	// Emulator host alias forwards to loopback; Windows uses localhost for control.
 	must(http.ListenAndServe("127.0.0.1:8765", control))
+}
+
+func runLoopbackSeed(fixture map[string]any) {
+	seedPort, seedOK := fixture["seed_port"].(float64)
+	proxyPort, proxyOK := fixture["seed_proxy_port"].(float64)
+	infoHash, err := hex.DecodeString(fmt.Sprint(fixture["info_hash"]))
+	if err != nil || len(infoHash) != 20 || !seedOK || !proxyOK || seedPort < 1 || seedPort > 65535 || proxyPort < 1 || proxyPort > 65535 {
+		log.Fatal("Invalid loopback-only fixture")
+	}
+	listener, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", int(proxyPort)))
+	must(err)
+	defer listener.Close()
+	fmt.Println("Loopback-only fixture bridge ready")
+	for {
+		incoming, err := listener.Accept()
+		must(err)
+		go func() {
+			defer incoming.Close()
+			stream, err := receiveTorrentStream(incoming, infoHash)
+			if err != nil {
+				return
+			}
+			outgoing, err := net.DialTimeout("tcp", fmt.Sprintf("127.0.0.1:%d", int(seedPort)), 5*time.Second)
+			if err != nil {
+				return
+			}
+			defer outgoing.Close()
+			done := make(chan struct{})
+			go func() { io.Copy(outgoing, stream); outgoing.Close(); close(done) }()
+			io.Copy(stream, outgoing)
+			incoming.Close()
+			<-done
+		}()
+	}
 }
 
 type bufferedStream struct {
